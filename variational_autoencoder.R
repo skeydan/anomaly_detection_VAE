@@ -106,8 +106,21 @@ vae %>% fit(
   verbose=1
 )
 
-#vae %>% save_model_hdf5("vae_1190_2_xent.h5")
-vae %>% save_model_hdf5("vae_1190_2_rsme.h5")
+Save model weights ------------------------------------------------------------------
+  
+  vae %>% save_model_weights_hdf5("vae_conv.h5")
+
+# Visualize ----------------------------------------------------------------------------
+
+source("visualize_mnist.R")
+
+
+# View reconstruction / predictions ----------------------------------------------------------
+
+
+
+
+
 
 # Inspect intermediate layers ----------------------------------------------------------
 

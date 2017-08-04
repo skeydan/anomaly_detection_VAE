@@ -1,11 +1,24 @@
+# get data into format
+
 library(keras)
 
 mnist <- dataset_mnist()
-data <- lapply(mnist, function(m) {
-  array(m$x / 255, dim = c(dim(m$x)[1], original_img_size))
-})
-X_train <- data$train
-X_test <- data$test
 
+###
+
+X_train <- mnist$train$x/255
 dim(X_train)
-dim(X_test)
+dim(X_train) <- c(dim(X_train),1)
+dim(X_train)
+
+###
+
+X_test <- mnist$test$x/255
+dim(X_test) <- c(dim(X_test),1)
+
+
+###
+
+img_rows <- 28L
+img_cols <- 28L
+img_chns <- 1L
