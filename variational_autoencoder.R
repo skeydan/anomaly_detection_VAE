@@ -1,16 +1,33 @@
-source("data_UCSD.R")
-source("data_mnist.R")
-
+#source("data_UCSD.R")
+#source("data_mnist.R")
+source("data_fraud.R")
 library(keras)
+
 (K <- keras::backend())
 
 
-# Parameters --------------------------------------------------------------
+# Dataset-dependent parameters --------------------------------------------------------------
+
+# change this according to dataset
+# original_dim <- 37604L  # UCSD
+# original_dim <- 728L    # MNIST
+ original_dim <- 788L    # fraud  
+
+# change this too
+#latent_dim <- 328L       # UCSD
+#latent_dim <- 2L         # MNIST
+latent_dim <- 2L         # fraud
+
+# and this
+# intermediate_dim <- 1190L  # UCSD
+# intermediate_dim <- 256L   # MNIST
+intermediate_dim <- 256L  # fraud
+
+
+# Tuning parameters --------------------------------------------------------------
+
 
 batch_size <- 100L
-original_dim <- 37604L
-latent_dim <- 328L
-intermediate_dim <- 1190L
 epochs <- 10L
 epsilon_std <- 1.0
 # https://github.com/bjlkeng/sandbox/blob/master/notebooks/variational_autoencoder-svhn/model_fit.ipynb

@@ -1,34 +1,60 @@
-
+library(dplyr)
 data(sales, package="DMwR2")
 sales <- filter(sales,!(is.na(Quant) & is.na(Val)))
 sales <- filter(sales,!(Prod %in% c("p2442", "p2443"))) %>% droplevels()
 
+sales <- mutate(sales,Uprice=Val/Quant)
+tPrice <- filter(sales, Insp != "fraud") %>% 
+  group_by(Prod) %>% 
+  summarise(medianPrice = median(Uprice,na.rm=TRUE))
+
+noQuantMedPrices <- filter(sales, is.na(Quant)) %>% 
+  inner_join(tPrice) %>% 
+  select(medianPrice)
+noValMedPrices <- filter(sales, is.na(Val)) %>% 
+  inner_join(tPrice) %>% 
+  select(medianPrice)
+
+noQuant <- which(is.na(sales$Quant))
+noVal <- which(is.na(sales$Val))
+
 sales[noQuant,'Quant'] <- ceiling(sales[noQuant,'Val'] /noQuantMedPrices)
 sales[noVal,'Val'] <- sales[noVal,'Quant'] * noValMedPrices
-#sales$Uprice <- sales$Val/sales$Quant
+sales$Uprice <- sales$Val/sales$Quant
 
 ###############################################
-
-nrow(sales) == nrow(na.omit(sales))
+nrow(sales)
+table(sales$Insp)
 
 sales <- droplevels(sales %>% filter(Insp %in% c("ok", "fraud")))
 table(sales$Insp)
+nrow(sales)
+
 sales <- sales %>% select(-ID)
 sales <- sales %>% mutate(Insp = as.numeric(Insp)-1)
 sales
 
-swip <- with(sales,
+sales <- with(sales,
             data.frame(model.matrix(~Prod-1,sales),
-                       Quant,Val,Insp))
+                       Uprice,Insp))
 
-swop <- select(swip, c(Quant, Val, Insp))
+str(sales)
 
-s <- swop
-
-fraud_indices <- which(s$Insp == 1)
+fraud_indices <- which(sales$Insp == 1)
 length(fraud_indices)
 
-non_fraud_indices <- setdiff(1:nrow(s), fraud_indices)
+non_fraud_indices <- setdiff(1:nrow(sales), fraud_indices)
+length(non_fraud_indices)
 
-X_train
-y_train
+non_fraud_sample <- sample(non_fraud_indices, length(fraud_indices))
+length(non_fraud_sample)
+
+test_samples <- c(non_fraud_sample, fraud_indices)
+test_matrix <- as.matrix(sales[test_samples, ])
+dim(test_matrix)
+
+train_indices <- setdiff(1:nrow(sales), test_samples)
+train_matrix <- as.matrix(sales[train_indices, ])
+dim(train_matrix)
+
+X_train <- train_matrix[ ,1:788]
