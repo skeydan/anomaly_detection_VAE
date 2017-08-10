@@ -1,10 +1,16 @@
+###################### Lessons learned ##########################
+# variables should be of similar scale
+# loss function must match the data
+# mix of one-hot-encoded and continuous data does not work well
+
+
 #source("data_UCSD.R")
 #source("data_mnist.R")
 source("data_fraud.R")
 
 
-model_weights_exist <- TRUE
-weights_file <- "weights_fraud.h5"
+model_weights_exist <- FALSE
+weights_file <- "weights_fraud_xent_20p.h5"
 
 
 library(keras)
@@ -17,23 +23,25 @@ library(keras)
 # change this according to dataset
 # original_dim <- 37604L  # UCSD
 # original_dim <- 728L    # MNIST
- original_dim <- 798L    # fraud  
+original_dim <- 21L    # fraud  
+
 
 # change this too
 #latent_dim <- 328L       # UCSD
 #latent_dim <- 2L         # MNIST
 latent_dim <- 2L         # fraud
 
+
 # and this
 # intermediate_dim <- 1190L  # UCSD
 # intermediate_dim <- 256L   # MNIST
-intermediate_dim <- 256L  # fraud
+intermediate_dim <- 8L  # fraud
 
 
 # Tuning parameters --------------------------------------------------------------
 
-batch_size <- 10L
-epochs <- 20L
+batch_size <- 1L
+epochs <- 2000L
 epsilon_std <- 1.0
 # https://github.com/bjlkeng/sandbox/blob/master/notebooks/variational_autoencoder-svhn/model_fit.ipynb
 #var_epsilon <- 0.025
@@ -100,6 +108,13 @@ xent_loss <- function(target, reconstruction) {
   
 }
 
+mse_loss <- function(target, reconstruction) {
+  as.double(original_dim) * loss_mean_squared_error(target, reconstruction)
+  #loss_mean_squared_error(target, reconstruction)
+}
+
+
+
 # https://github.com/bjlkeng/sandbox/blob/master/notebooks/variational_autoencoder-svhn/model_fit.ipynb
 
 #logx_loss <- function(x, x_decoded_mean) {
@@ -117,14 +132,12 @@ kl_loss <- function(target, reconstruction) {
 vae_loss <- function(target, reconstruction) {
   # optimizing this ends up the same as optimizing the average, i.e
   # K$mean(xent_loss(target, reconstruction) + kl_loss(target, reconstruction))
-  xent_loss(target, reconstruction) + kl_loss(target, reconstruction)
+  #xent_loss(target, reconstruction) + kl_loss(target, reconstruction)
   # xent_loss(target, reconstruction) 
-  # kl_loss(target, reconstruction) + 0 * xent_loss(target, reconstruction)
+  xent_loss(target, reconstruction) + kl_loss(target, reconstruction)
 }
 
-vae %>% compile(optimizer = optimizer_adam(lr=0.0001), loss = vae_loss)
-#vae %>% compile(optimizer = optimizer_adam(lr=0.0001), loss = kl_loss)
-
+vae %>% compile(optimizer = optimizer_adam(lr=0.0001), loss = vae_loss, metrics = c(xent_loss, kl_loss))
 #vae %>% compile(optimizer = optimizer_rmsprop(), loss = vae_loss)
 
 
@@ -150,37 +163,31 @@ if (model_weights_exist == FALSE) {
 # source("visualize_mnist.R")
 # 
 # 
+
+# ----------------------------------------------------------------------------------------
+
+first1 <- X_train[1, ]
+first1 <- t(first1)
+first10 <- X_train[1:10,]
+
+
+# evaluate loss
+vae %>% evaluate(first1, first1, batch_size=batch_size)
+vae %>% evaluate(first10, first10, batch_size=batch_size)
+vae %>% evaluate(X_train, X_train, batch_size=batch_size)
+
+
 # View reconstruction / predictions ----------------------------------------------------------
 
-first10 <- X_train[1:10,]
-preds <- vae %>% predict(first100, batch_size=batch_size)
+preds <- vae %>% predict(first10, batch_size=batch_size)
+dim(preds)
 preds
 
 
-#dim(first) <- c(1,original_dim)
-#dim(first100)
-# lat <- encoder %>% predict(first100, batch_size=100)
-# preds <- vae %>% # first100 <- X_train[1:100,]
-# #dim(first) <- c(1,37604)
-# dim(first100)
-# lat <- encoder %>% predict(first100, batch_size=100)
-# preds <- vae %>% predict(first100, batch_size=100)
-# dim(preds)predict(first100, batch_size=100)
-# dim(preds)
+# reconstruction error on test set
 
+non_fraud_half <- X_test[1:(nrow(X_test)/2), ]
+fraud_half <- X_test[((nrow(X_test)/2)+1):(nrow(X_test)), ]
 
- 
-# # Inspect intermediate layers ----------------------------------------------------------
-# 
-# #layer_name = 'my_layer'
-# #intermediate_layer_model = Model(inputs=model.input,
-# #                                 outputs=model.get_layer(layer_name).output)
-# #intermediate_output = intermediate_layer_model.predict(data)
-# 
-# 
-
-# 
-# lat[1:5,]
-# preds[1:5,1:8]
-# 
-# first100[1:5,1:8]
+vae %>% evaluate(non_fraud_half, non_fraud_half, batch_size=batch_size)
+vae %>% evaluate(fraud_half, fraud_half, batch_size=batch_size)
