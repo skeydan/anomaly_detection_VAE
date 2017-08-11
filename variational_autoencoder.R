@@ -10,7 +10,7 @@ source("data_fraud.R")
 
 
 model_weights_exist <- FALSE
-weights_file <- "weights_fraud_xent_20p.h5"
+weights_file <- "weights_fraud_mse_20p.h5"
 
 
 library(keras)
@@ -41,10 +41,11 @@ intermediate_dim <- 8L  # fraud
 # Tuning parameters --------------------------------------------------------------
 
 batch_size <- 1L
-epochs <- 2000L
+epochs <- 20L
 epsilon_std <- 1.0
 # https://github.com/bjlkeng/sandbox/blob/master/notebooks/variational_autoencoder-svhn/model_fit.ipynb
 #var_epsilon <- 0.025
+var_epsilon <- 0.1
 
 # Model definition --------------------------------------------------------
 
@@ -80,23 +81,26 @@ z <- layer_concatenate(list(z_mean, z_log_var)) %>%
   layer_lambda(sampling)
 z
 
-decoder_intermediate <- layer_dense(units = intermediate_dim, activation = "relu")
-decoder_final <- layer_dense(units = original_dim, activation = "sigmoid")
-decoded_intermediate <- decoder_intermediate(z)
-decoded_final <- decoder_final(decoded_intermediate)
-decoded_final
+decoder_h <- layer_dense(units = intermediate_dim, activation = "relu")
+decoder_mean <- layer_dense(units = original_dim, activation = "sigmoid")
+decoder_var <- layer_dense(units = original_dim, activation = "relu")
+
+h_decoded <- decoder_h(z)
+x_decoded_mean <- decoder_mean(h_decoded)
+x_decoded_var <- decoder_var(h_decoded)
+
 
 # end-to-end autoencoder
-vae <- keras_model(x, decoded_final)
+vae <- keras_model(x, x_decoded_mean)
 
 # encoder, from inputs to latent space
 encoder <- keras_model(x, z_mean)
 
 # generator, from latent space to reconstructed inputs
-generator_decoder_input <- layer_input(shape = latent_dim)
-generator_decoded_intermediate <- decoder_intermediate(generator_decoder_input)
-generator_decoded_final <- decoder_final(generator_decoded_intermediate)
-generator <- keras_model(generator_decoder_input, generator_decoded_final)
+decoder_input <- layer_input(shape = latent_dim)
+h_decoded_2 <- decoder_h(decoder_input)
+x_decoded_mean_2 <- decoder_mean(h_decoded_2)
+generator <- keras_model(decoder_input, x_decoded_mean_2)
 
 # Loss --------------------------------------------------------
 
@@ -116,14 +120,19 @@ mse_loss <- function(target, reconstruction) {
 
 
 # https://github.com/bjlkeng/sandbox/blob/master/notebooks/variational_autoencoder-svhn/model_fit.ipynb
+# https://www.reddit.com/r/MachineLearning/comments/4eqifs/gaussian_observation_vae/
+# Full term log N(x; mu, sigma) = -0.5 log(2 pi) - log(sigma) - (x - mu)2 / ( 2 sigma2 )
 
-#logx_loss <- function(x, x_decoded_mean) {
-#  loss <- (  0.5 * math.log(2 * math.pi)
-#            + 0.5 * K.log(_x_decoded_var + var_epsilon)
-#            + 0.5 * K.square(x - x_decoded_mean) / (_x_decoded_var + var_epsilon))
-#  loss = K.sum(loss, axis=-1)
-#  K.mean(loss)
-#}
+### see for an explanation!
+# http://bjlkeng.github.io/posts/a-variational-autoencoder-on-the-svnh-dataset/
+
+logx_loss <- function(target, reconstruction) {
+ loss <- 0.5 * log(2 * pi) +
+         0.5 * K$log(x_decoded_var + var_epsilon) +
+         0.5 * K$square(x - x_decoded_mean) / (x_decoded_var + var_epsilon)
+ loss = K$sum(loss, axis=-1L)
+ K$mean(loss)
+}
 
 kl_loss <- function(target, reconstruction) {
   -0.5*K$mean(1 + z_log_var - K$square(z_mean) - K$exp(z_log_var), axis = -1L)
@@ -133,11 +142,10 @@ vae_loss <- function(target, reconstruction) {
   # optimizing this ends up the same as optimizing the average, i.e
   # K$mean(xent_loss(target, reconstruction) + kl_loss(target, reconstruction))
   #xent_loss(target, reconstruction) + kl_loss(target, reconstruction)
-  # xent_loss(target, reconstruction) 
-  xent_loss(target, reconstruction) + kl_loss(target, reconstruction)
+  mse_loss(target, reconstruction) + kl_loss(target, reconstruction)
 }
 
-vae %>% compile(optimizer = optimizer_adam(lr=0.0001), loss = vae_loss, metrics = c(xent_loss, kl_loss))
+vae %>% compile(optimizer = optimizer_adam(lr=0.0001), loss = vae_loss, metrics = c(mse_loss, kl_loss))
 #vae %>% compile(optimizer = optimizer_rmsprop(), loss = vae_loss)
 
 
