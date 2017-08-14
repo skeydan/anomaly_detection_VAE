@@ -6,11 +6,12 @@
 
 #source("data_UCSD.R")
 #source("data_mnist.R")
-source("data_fraud.R")
+#source("data_fraud.R")
+source("data_unsw.R")
 
 
 model_weights_exist <- FALSE
-weights_file <- "weights_fraud_mse_20p.h5"
+weights_file <- "weights_unsw_rsme_xepochs_latent3.h5"
 
 
 library(keras)
@@ -23,25 +24,28 @@ library(keras)
 # change this according to dataset
 # original_dim <- 37604L  # UCSD
 # original_dim <- 728L    # MNIST
-original_dim <- 21L    # fraud  
+# original_dim <- 58L     # fraud  
+original_dim <- 188L      # attack
 
 
 # change this too
 #latent_dim <- 328L       # UCSD
 #latent_dim <- 2L         # MNIST
-latent_dim <- 2L         # fraud
+#latent_dim <- 3L         # fraud
+latent_dim <- 2L          # attack
 
 
 # and this
 # intermediate_dim <- 1190L  # UCSD
 # intermediate_dim <- 256L   # MNIST
-intermediate_dim <- 8L  # fraud
+# intermediate_dim <- 8L     # fraud
+intermediate_dim <- 32L      # attack
 
 
 # Tuning parameters --------------------------------------------------------------
 
-batch_size <- 1L
-epochs <- 20L
+batch_size <- 100L
+epochs <- 10L
 epsilon_std <- 1.0
 # https://github.com/bjlkeng/sandbox/blob/master/notebooks/variational_autoencoder-svhn/model_fit.ipynb
 #var_epsilon <- 0.025
@@ -58,13 +62,10 @@ z_log_var <- layer_dense(h, latent_dim)
 # https://github.com/bjlkeng/sandbox/blob/master/notebooks/variational_autoencoder-svhn/model_fit.ipynb
 #z_mean <- layer_dense(h, latent_dim, activation = "relu")
 #z_log_var <- layer_dense(h, latent_dim, activation = "relu")
-
-#### add dropout???
+# add dropout???
 
 
 sampling <- function(arg){
-  #z_mean <- arg[,0:1]
-  #z_log_var <- arg[,2:3]
   z_mean <- arg[,0:(latent_dim-1)]
   z_log_var <- arg[,latent_dim:(2*latent_dim-1)]
   
@@ -105,8 +106,6 @@ generator <- keras_model(decoder_input, x_decoded_mean_2)
 # Loss --------------------------------------------------------
 
 xent_loss <- function(target, reconstruction) {
-  # no need to take the mean here, as the result is already 1d -> no difference
-  # K$mean(as.double(original_dim) * loss_binary_crossentropy(target, reconstruction))
   # multiply by number of rows because Keras returns mean crossentropy, not sum
   as.double(original_dim) * loss_binary_crossentropy(target, reconstruction)
   
@@ -121,17 +120,14 @@ mse_loss <- function(target, reconstruction) {
 
 # https://github.com/bjlkeng/sandbox/blob/master/notebooks/variational_autoencoder-svhn/model_fit.ipynb
 # https://www.reddit.com/r/MachineLearning/comments/4eqifs/gaussian_observation_vae/
-# Full term log N(x; mu, sigma) = -0.5 log(2 pi) - log(sigma) - (x - mu)2 / ( 2 sigma2 )
 
 ### see for an explanation!
 # http://bjlkeng.github.io/posts/a-variational-autoencoder-on-the-svnh-dataset/
 
 logx_loss <- function(target, reconstruction) {
- loss <- 0.5 * log(2 * pi) +
-         0.5 * K$log(x_decoded_var + var_epsilon) +
-         0.5 * K$square(x - x_decoded_mean) / (x_decoded_var + var_epsilon)
- loss = K$sum(loss, axis=-1L)
- K$mean(loss)
+  loss <- 0.5 * K$sum(log(2 * pi) + 
+                       K$log(x_decoded_var + var_epsilon) +
+                       K$square(x - x_decoded_mean) / (x_decoded_var + var_epsilon), axis = -1L)
 }
 
 kl_loss <- function(target, reconstruction) {
@@ -142,10 +138,10 @@ vae_loss <- function(target, reconstruction) {
   # optimizing this ends up the same as optimizing the average, i.e
   # K$mean(xent_loss(target, reconstruction) + kl_loss(target, reconstruction))
   #xent_loss(target, reconstruction) + kl_loss(target, reconstruction)
-  mse_loss(target, reconstruction) + kl_loss(target, reconstruction)
+  logx_loss(target, reconstruction) + kl_loss(target, reconstruction)
 }
 
-vae %>% compile(optimizer = optimizer_adam(lr=0.0001), loss = vae_loss, metrics = c(mse_loss, kl_loss))
+vae %>% compile(optimizer = optimizer_adam(lr=0.0001), loss = vae_loss, metrics = c(mse_loss, logx_loss, kl_loss))
 #vae %>% compile(optimizer = optimizer_rmsprop(), loss = vae_loss)
 
 
@@ -176,26 +172,24 @@ if (model_weights_exist == FALSE) {
 
 first1 <- X_train[1, ]
 first1 <- t(first1)
-first10 <- X_train[1:10,]
-
 
 # evaluate loss
-vae %>% evaluate(first1, first1, batch_size=batch_size)
-vae %>% evaluate(first10, first10, batch_size=batch_size)
 vae %>% evaluate(X_train, X_train, batch_size=batch_size)
 
 
 # View reconstruction / predictions ----------------------------------------------------------
 
-preds <- vae %>% predict(first10, batch_size=batch_size)
+preds <- vae %>% predict(X_train[1:100,], batch_size=batch_size)
 dim(preds)
 preds
 
 
 # reconstruction error on test set
 
-non_fraud_half <- X_test[1:(nrow(X_test)/2), ]
-fraud_half <- X_test[((nrow(X_test)/2)+1):(nrow(X_test)), ]
+vae %>% evaluate(X_test, X_test, batch_size=batch_size)
 
-vae %>% evaluate(non_fraud_half, non_fraud_half, batch_size=batch_size)
-vae %>% evaluate(fraud_half, fraud_half, batch_size=batch_size)
+#vae %>% evaluate(X_test_nonfraud, X_test_nonfraud, batch_size=batch_size)
+#vae %>% evaluate(X_test_fraud, X_test_fraud, batch_size=batch_size)
+
+vae %>% evaluate(X_test_nonfraud, X_test_nonfraud, batch_size=batch_size)
+vae %>% evaluate(X_test_fraud, X_test_fraud, batch_size=batch_size)

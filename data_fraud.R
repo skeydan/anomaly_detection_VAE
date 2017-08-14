@@ -1,39 +1,20 @@
 library(dplyr)
 library(ggplot2)
 
+options(tibble.print_max = 200, tibble.print_min = 200)
+options(scipen = 10)
+
 data(sales, package="DMwR2")
-sales <- filter(sales,!(is.na(Quant) & is.na(Val)))
-sales <- filter(sales,!(Prod %in% c("p2442", "p2443"))) %>% droplevels()
 
-sales <- mutate(sales,Uprice=Val/Quant)
-tPrice <- filter(sales, Insp != "fraud") %>% 
-  group_by(Prod) %>% 
-  summarise(medianPrice = median(Uprice,na.rm=TRUE))
+sales <- filter(sales,!(is.na(Quant)))
+sales <- filter(sales,!(is.na(Val)))
 
-noQuantMedPrices <- filter(sales, is.na(Quant)) %>% 
-  inner_join(tPrice) %>% 
-  select(medianPrice)
-noValMedPrices <- filter(sales, is.na(Val)) %>% 
-  inner_join(tPrice) %>% 
-  select(medianPrice)
-
-noQuant <- which(is.na(sales$Quant))
-noVal <- which(is.na(sales$Val))
-
-sales[noQuant,'Quant'] <- ceiling(sales[noQuant,'Val'] /noQuantMedPrices)
-sales[noVal,'Val'] <- sales[noVal,'Quant'] * noValMedPrices
-sales$Uprice <- sales$Val/sales$Quant
-
-#nrow(sales)
-#table(sales$Insp)
+# this shows that we should NOT reduce things to Uprice because fraud may also be high quantity with low uprice!!!
+#sales_1125 <- sales %>% filter(Prod=="p1125", Insp %in% c("ok", "fraud")) %>% arrange(desc(Insp))
 
 sales <- droplevels(sales %>% filter(Insp %in% c("ok", "fraud")))
 
-#table(sales$Insp)
-#nrow(sales)
-
-sales <- sales %>% select(-c(ID, Quant, Val))
-
+sales <- sales %>% select(-c(ID))
 
 sales <- sales %>% mutate(Insp = as.numeric(Insp)-1)
 sales
@@ -48,46 +29,28 @@ sales <- droplevels(sales %>% filter(Prod %in% top_20))
 
 nrow(sales)
 str(sales)
-sales
+
+summary_stats <- sales %>% group_by(Prod, Insp) %>% summarise_all(funs(mean, median, min, max))
 
 
 ###############################################
-# log-transform Uprice
+# bin quantities and values
 ###############################################
 
-sales <- sales %>% mutate(Uprice = log(Uprice))
-summary(sales$Uprice)
+hist(sales$Quant, 20, plot = FALSE)
+hist(sales$Val, 20, plot = FALSE)
 
+sales <- sales %>% mutate(Quant_bin = cut(Quant, 20), Val_bin = cut(Val,20))
 
-###############################################
-# scale Uprice
-###############################################
-
-# if we want to use binary crossentropy Uprice has to be between 0 and 1
-# Uprice should be similar in size to the product 0-1 bits also for MSE!
-
-normalize <- function(vec, min, max) {
-  (vec-min) / (max-min)
-}
-minval <- min(sales$Uprice)
-maxval <- max(sales$Uprice)
-minval
-maxval
-
-sales <- sales %>% mutate(Uprice = normalize(Uprice, minval, maxval))
-summary(sales$Uprice)
-
-
+sales <- sales %>% select(-c(Quant, Val))
 
 ###############################################
-# one-hot encode products
+# one-hot encode products, quantities and values
 ###############################################
-
 
 sales <- with(sales,
-            data.frame(model.matrix(~Prod-1,sales),
-                       Uprice,Insp))
-
+              data.frame(model.matrix(~ Prod + Quant_bin + Val_bin -1,sales),
+                         Insp))
 str(sales)
 
 
@@ -118,3 +81,12 @@ dim(X_train)
 X_test <- test_matrix[ ,-(ncol(test_matrix))]
 dim(X_test)
 X_test
+
+###############################################
+# for evaluation
+###############################################
+
+X_test_nonfraud <- X_test[1:(nrow(X_test)/2), ]
+X_test_fraud <- X_test[((nrow(X_test)/2)+1):(nrow(X_test)), ]
+
+
