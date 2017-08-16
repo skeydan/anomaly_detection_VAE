@@ -1,13 +1,14 @@
 ### general ###
 
-model_weights_exist <- FALSE
-weights_file <- "weights_fraud_xent_20epochs_bins10_latent2.h5"
+model_weights_exist <- TRUE
+weights_file <- "weights_fraud_mse_100epochs_dims102_32_2.h5"
 
 
 ### dimensions ###
 
 #original_dim <- 58L  
-original_dim <- 118L     
+#original_dim <- 118L     
+original_dim <- 102L
 latent_dim <- 2L        
 intermediate_dim <- 32L     
 
@@ -15,10 +16,9 @@ intermediate_dim <- 32L
 ### hyperparameters ###
 
 batch_size <- 100L
-epochs <- 1000L
+epochs <- 100L
 learning_rate <- 0.0001
 
 ### model ###
 
-loss <- "xent"
-epsilon_std <- 2.0
+loss <- "mse"

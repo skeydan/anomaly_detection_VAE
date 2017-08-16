@@ -7,7 +7,7 @@ library(keras)
 
 #source("data_UCSD.R")
 #source("data_mnist.R")
-source("data_fraud2.R")
+source("data_fraud3.R")
 #source("data_unsw.R")
 
 
@@ -23,9 +23,9 @@ print(c(loss, learning_rate))
 
 # Tuning parameters --------------------------------------------------------------
 
-#epsilon_std <- 1.0
+epsilon_std <- 1.0
 # https://github.com/bjlkeng/sandbox/blob/master/notebooks/variational_autoencoder-svhn/model_fit.ipynb
-#var_epsilon <- 0.025
+var_epsilon <- 0.025
 #var_epsilon <- 0.1
 
 
@@ -140,6 +140,8 @@ if (model_weights_exist == FALSE) {
     shuffle = TRUE, 
     epochs = epochs, 
     batch_size = batch_size,
+    callbacks = list(callback_tensorboard(log_dir="/tmp"), callback_early_stopping(patience=10)),
+    validation_data = list(X_train, X_train),
     verbose=1
   ) 
   vae %>% save_model_weights_hdf5(weights_file)
