@@ -12,11 +12,11 @@ sales <- filter(sales,!(is.na(Val)))
 # this shows that we should NOT reduce things to Uprice because fraud may also be high quantity with low uprice!!!
 #sales_1125 <- sales %>% filter(Prod=="p1125", Insp %in% c("ok", "fraud")) %>% arrange(desc(Insp))
 
-sales <- droplevels(sales %>% filter(Insp %in% c("ok", "fraud")))
+#sales <- droplevels(sales %>% filter(Insp %in% c("ok", "fraud")))
 
 sales <- sales %>% select(-c(ID))
 
-sales <- sales %>% mutate(Insp = as.numeric(Insp)-1)
+#sales <- sales %>% mutate(Insp = as.numeric(Insp)-1)
 nrow(sales)
 
 ###############################################
@@ -58,36 +58,20 @@ str(sales)
 # split in test and training sets
 ###############################################
 
-fraud_indices <- which(sales$Insp == 1)
-length(fraud_indices)
-
-non_fraud_indices <- setdiff(1:nrow(sales), fraud_indices)
-length(non_fraud_indices)
-
-non_fraud_sample <- sample(non_fraud_indices, length(fraud_indices))
-length(non_fraud_sample)
-
-test_samples <- c(non_fraud_sample, fraud_indices)
-test_matrix <- as.matrix(sales[test_samples, ])
-dim(test_matrix)
-
-train_indices <- setdiff(1:nrow(sales), test_samples)
-train_matrix <- as.matrix(sales[train_indices, ])
-dim(train_matrix)
-
-X_train <- train_matrix[ ,-(ncol(train_matrix))]
+X_train <- sales %>% filter(Insp == "unkn") %>% 
+                     select(-Insp) %>% 
+                     as.matrix()
 dim(X_train)
 
-X_test <- test_matrix[ ,-(ncol(test_matrix))]
-dim(X_test)
-X_test
+X_train <- X_train[1:39800, ]
 
-###############################################
-# for evaluation
-###############################################
-
-X_test_nonfraud <- X_test[1:(nrow(X_test)/2), ]
-X_test_fraud <- X_test[((nrow(X_test)/2)+1):(nrow(X_test)), ]
-
-dim(X_test_fraud)
+X_test_nonfraud <- sales %>% filter(Insp == "ok") %>% 
+  select(-Insp) %>% 
+  as.matrix()
 dim(X_test_nonfraud)
+
+X_test_fraud <- sales %>% filter(Insp == "fraud") %>% 
+  select(-Insp) %>% 
+  as.matrix()
+dim(X_test_fraud)
+

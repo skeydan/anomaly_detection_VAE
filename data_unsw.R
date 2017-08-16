@@ -24,29 +24,33 @@ df_test <- df_test %>% mutate(proto = factor(proto),
                               state = factor(state),
                               attack_cat = factor(attack_cat))
 
-setdiff(levels(df_train$proto), levels(df_test$proto))
-setdiff(levels(df_test$proto), levels(df_train$proto))
-setdiff(levels(df_train$service), levels(df_test$service))
-setdiff(levels(df_test$service), levels(df_train$service))
-setdiff(levels(df_train$state), levels(df_test$state))
-setdiff(levels(df_test$state), levels(df_train$state))
+#setdiff(levels(df_train$proto), levels(df_test$proto))
+#setdiff(levels(df_test$proto), levels(df_train$proto)) # "icmp" "rtp" 
+#setdiff(levels(df_train$service), levels(df_test$service))
+#setdiff(levels(df_test$service), levels(df_train$service))
+#setdiff(levels(df_train$state), levels(df_test$state)) # "ACC" "CLO"
+#setdiff(levels(df_test$state), levels(df_train$state)) # "ECO" "no"  "PAR" "URN"
 
 
 levels(df_train$proto)
 levels(df_train$proto) <- c(levels(df_train$proto), levels(df_test$proto))
 levels(df_train$proto)
 
-levels(df_test$proto)
-levels(df_test$proto) <- c(levels(df_train$proto), levels(df_test$proto))
-levels(df_test$proto)
+levels(df_train$state)
+levels(df_train$state) <- c(levels(df_train$state), levels(df_test$state))
+levels(df_train$state)
+
+levels(df_test$state)
+levels(df_test$state) <- c(levels(df_train$state), levels(df_test$state))
+levels(df_test$state)
 
 df_train <- df_train %>% mutate_if(is.numeric, normalize)
-summary(df_train)
+#summary(df_train)
 dim(df_train)
 
 
 df_test <- df_test %>% mutate_if(is.numeric, normalize)
-summary(df_test)
+#summary(df_test)
 dim(df_test)
 
 #########
@@ -64,7 +68,7 @@ df_train <- with(df_train,
                          ct_dst_src_ltm, is_ftp_login, ct_ftp_cmd, 
                          ct_flw_http_mthd, ct_src_ltm, ct_srv_dst, 
                          is_sm_ips_ports, attack_cat, label)) 
-colnames(df_train)
+#colnames(df_train)
 dim(df_train)
 
 df_test <- with(df_test,
@@ -79,7 +83,7 @@ df_test <- with(df_test,
                             ct_dst_src_ltm, is_ftp_login, ct_ftp_cmd, 
                             ct_flw_http_mthd, ct_src_ltm, ct_srv_dst, 
                             is_sm_ips_ports, attack_cat, label)) 
-colnames(df_test)
+#colnames(df_test)
 dim(df_test)
 
 ###############################################
@@ -90,7 +94,7 @@ table(df_train$label, df_train$attack_cat)
 
 df_train <- df_train %>% filter(attack_cat == "Normal") %>%
                          select(-c(label, attack_cat))
-colnames(df_train)
+#colnames(df_train)
 
 X_train <- as.matrix(df_train)
 dim(X_train)
@@ -117,4 +121,7 @@ X_test_reconnaissance <- as.matrix(df_test %>% filter(attack_cat == "Reconnaissa
 X_test_shellcode <- as.matrix(df_test %>% filter(attack_cat == "Shellcode") %>% select(-c(attack_cat, label)))
 X_test_worms <- as.matrix(df_test %>% filter(attack_cat == "Worms") %>% select(-c(attack_cat, label)))
 
+Map(function(x) dim(x)[1], list(X_test, X_test_analysis, X_test_backdoors, X_test_DoS,
+              X_test_exploits, X_test_fuzzers, X_test_generic, X_test_normal,
+              X_test_reconnaissance, X_test_shellcode, X_test_worms)) %>% unlist()
 
