@@ -125,3 +125,48 @@ Map(function(x) dim(x)[1], list(X_test, X_test_analysis, X_test_backdoors, X_tes
               X_test_exploits, X_test_fuzzers, X_test_generic, X_test_normal,
               X_test_reconnaissance, X_test_shellcode, X_test_worms)) %>% unlist()
 
+
+### datasets with labels --- 1 column
+
+df_test <- df_test %>% mutate(attack_cat = relevel(attack_cat, ref="Normal"))
+levels(df_test$attack_cat)
+
+X_test_with_label <- df_test %>% select(-c(label)) %>% mutate(attack_cat = as.numeric(as.factor(attack_cat))-1)
+
+dim(X_test_with_label)
+colnames((X_test_with_label))
+table(X_test_with_label$attack_cat)
+
+X_train_with_label <- as.data.frame(X_train) %>% mutate(attack_cat = 0)
+dim(X_train_with_label)
+table(X_train_with_label$attack_cat)
+
+### datasets with labels --- one-hot
+
+# X_test_with_label <- df_test %>% select(-c(label)) 
+# X_test_with_label <- X_test_with_label %>% cbind(with(X_test_with_label, model.matrix(~ attack_cat -1))) %>%
+#   select(-attack_cat)
+# 
+# dim(X_test_with_label)
+# colnames((X_test_with_label))
+# 
+# X_train_with_label <- as.data.frame(X_train) %>% mutate(attack_catAnalysis = 0,
+#                                                         attack_catBackdoor = 0,
+#                                                         attack_catDoS = 0,
+#                                                         attack_catExploits = 0,
+#                                                         attack_catFuzzers = 0,
+#                                                         attack_catGeneric = 0,
+#                                                         attack_catNormal = 1,
+#                                                         attack_catReconnaissance = 0,
+#                                                         attack_catShellcode = 0,
+#                                                         attack_catWorms =0)
+# colnames(X_train_with_label)
+# summary(X_train_with_label)
+# 
+
+### write out to csv
+
+library(readr)
+X_test_with_label %>% as.data.frame() %>% write_csv("X_test_with_label.csv")
+X_train_with_label %>% as.data.frame() %>% write_csv("X_train_with_label.csv")
+
