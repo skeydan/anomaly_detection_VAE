@@ -15,34 +15,12 @@ df_test <- read_csv(test_file)
 
 ##########
 
-df_train <- df_train %>% mutate(proto = factor(proto),
-                                service = factor(service),
-                                state = factor(state),
-                                attack_cat = factor(attack_cat))
-df_test <- df_test %>% mutate(proto = factor(proto),
-                              service = factor(service),
-                              state = factor(state),
-                              attack_cat = factor(attack_cat))
+df_train <- df_train %>% mutate(attack_cat = factor(attack_cat))
+df_test <- df_test %>% mutate(attack_cat = factor(attack_cat))
 
-#setdiff(levels(df_train$proto), levels(df_test$proto))
-#setdiff(levels(df_test$proto), levels(df_train$proto)) # "icmp" "rtp" 
-#setdiff(levels(df_train$service), levels(df_test$service))
-#setdiff(levels(df_test$service), levels(df_train$service))
-#setdiff(levels(df_train$state), levels(df_test$state)) # "ACC" "CLO"
-#setdiff(levels(df_test$state), levels(df_train$state)) # "ECO" "no"  "PAR" "URN"
+df_train <- df_train %>% select_if(function(column) !is.character(column))
+df_test <- df_test %>% select_if(function(column) !is.character(column))
 
-
-levels(df_train$proto)
-levels(df_train$proto) <- c(levels(df_train$proto), levels(df_test$proto))
-levels(df_train$proto)
-
-levels(df_train$state)
-levels(df_train$state) <- c(levels(df_train$state), levels(df_test$state))
-levels(df_train$state)
-
-levels(df_test$state)
-levels(df_test$state) <- c(levels(df_train$state), levels(df_test$state))
-levels(df_test$state)
 
 df_train <- df_train %>% mutate_if(is.numeric, scale)
 #summary(df_train)
@@ -53,38 +31,7 @@ df_test <- df_test %>% mutate_if(is.numeric, scale)
 #summary(df_test)
 dim(df_test)
 
-#########
 
-
-df_train <- with(df_train,
-              data.frame(model.matrix(~ proto + service + state -1, df_train),
-                         dur, spkts, dpkts, sbytes, dbytes,
-                         rate, sttl, dttl, sload, dload, sloss,
-                         dloss, sinpkt, dinpkt, sjit, djit,
-                         swin, stcpb, dtcpb, dwin, tcprtt,
-                         synack, ackdat, smean, dmean, trans_depth,
-                         response_body_len, ct_srv_src, ct_state_ttl,
-                         ct_dst_ltm, ct_src_dport_ltm, ct_dst_sport_ltm,
-                         ct_dst_src_ltm, is_ftp_login, ct_ftp_cmd, 
-                         ct_flw_http_mthd, ct_src_ltm, ct_srv_dst, 
-                         is_sm_ips_ports, attack_cat, label)) 
-#colnames(df_train)
-dim(df_train)
-
-df_test <- with(df_test,
-                 data.frame(model.matrix(~ proto + service + state -1, df_test),
-                            dur, spkts, dpkts, sbytes, dbytes,
-                            rate, sttl, dttl, sload, dload, sloss,
-                            dloss, sinpkt, dinpkt, sjit, djit,
-                            swin, stcpb, dtcpb, dwin, tcprtt,
-                            synack, ackdat, smean, dmean, trans_depth,
-                            response_body_len, ct_srv_src, ct_state_ttl,
-                            ct_dst_ltm, ct_src_dport_ltm, ct_dst_sport_ltm,
-                            ct_dst_src_ltm, is_ftp_login, ct_ftp_cmd, 
-                            ct_flw_http_mthd, ct_src_ltm, ct_srv_dst, 
-                            is_sm_ips_ports, attack_cat, label)) 
-#colnames(df_test)
-dim(df_test)
 
 ###############################################
 # training set: normal only
@@ -93,8 +40,8 @@ dim(df_test)
 table(df_train$label, df_train$attack_cat)
 
 df_train <- df_train %>% filter(attack_cat == "Normal") %>%
-                         select(-c(label, attack_cat))
-#colnames(df_train)
+                         select(-c(id,label, attack_cat))
+colnames(df_train)
 
 X_train <- as.matrix(df_train)
 dim(X_train)
@@ -106,7 +53,7 @@ dim(X_train)
 
 table(df_test$label, df_test$attack_cat)
 
-X_test <- as.matrix(df_test %>% select(-c(attack_cat, label)))
+X_test <- as.matrix(df_test %>% select(-c(id,attack_cat, label)))
 y_test <- as.matrix(df_test %>% select(c(attack_cat, label)) %>% mutate_all(as.numeric))
 table(y_test)
 
@@ -125,8 +72,10 @@ Map(function(x) dim(x)[1], list(X_test, X_test_analysis, X_test_backdoors, X_tes
               X_test_exploits, X_test_fuzzers, X_test_generic, X_test_normal,
               X_test_reconnaissance, X_test_shellcode, X_test_worms)) %>% unlist()
 
-
-### datasets with labels --- 1 column
+###############################################
+# datasets with labels --- 1 column
+# for dl4j
+###############################################
 
 df_test <- df_test %>% mutate(attack_cat = relevel(attack_cat, ref="Normal"))
 levels(df_test$attack_cat)

@@ -5,16 +5,18 @@
 library(keras)
 (K <- keras::backend())
 
+set.seed(777)
+
 #source("data_UCSD.R")
 #source("data_mnist.R")
-source("data_fraud3.R")
-#source("data_unsw.R")
+#source("data_fraud3.R")
+source("data_unsw.R")
 
 
 #source("params_UCSD.R")
 #source("params_mnist.R")
-source("params_fraud.R")
-#source("params_unsw.R")
+#source("params_fraud.R")
+source("params_unsw.R")
 
 print(c(model_weights_exist, weights_file))
 print(c(original_dim, latent_dim, intermediate_dim))
@@ -150,7 +152,8 @@ if (model_weights_exist == FALSE) {
 }
 
 
-source("visualize_fraud.R")
+#source("visualize_fraud.R")
+source("visualize_unsw.R")
 # 
 # 
 
@@ -160,8 +163,8 @@ vae %>% evaluate(X_train, X_train, batch_size=batch_size)
 
 #source("eval_UCSD.R")
 #source("eval_mnist.R")
-source("eval_fraud.R")
-#source("eval_unsw.R")
+#source("eval_fraud.R")
+source("eval_unsw.R")
 
 
 

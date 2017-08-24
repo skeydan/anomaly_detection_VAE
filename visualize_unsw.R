@@ -3,6 +3,8 @@
 library(ggplot2)
 library(dplyr)
 
+set.seed(777)
+
 
 X_test_normal_encoded <- predict(encoder, X_test_normal, batch_size = batch_size)  %>% cbind("normal")
 X_test_analysis_encoded <- predict(encoder, X_test_analysis, batch_size = batch_size)  %>% cbind("analysis")
@@ -19,7 +21,9 @@ df <- rbind(X_test_normal_encoded, X_test_analysis_encoded, X_test_DoS_encoded,
             X_test_exploits_encoded, X_test_fuzzers_encoded, X_test_generic_encoded,
             X_test_reconnaissance_encoded, X_test_shellcode_encoded, X_test_worms_encoded)
 
+#df <- rbind(X_test_normal_encoded, X_test_analysis_encoded)
+
 df %>%
   as_data_frame() %>%
   mutate(V1 = as.numeric(V1), V2 = as.numeric(V2)) %>%
-  ggplot(aes(x = V1, y = V2, colour = V3)) + geom_point()
+  ggplot(aes(x = V1, y = V2, colour = V3)) + geom_point() + coord_cartesian(xlim = c(-10, 10), ylim = c(-10,10))
