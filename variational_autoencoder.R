@@ -27,9 +27,7 @@ print(c(loss, learning_rate))
 
 epsilon_std <- 1.0
 # https://github.com/bjlkeng/sandbox/blob/master/notebooks/variational_autoencoder-svhn/model_fit.ipynb
-var_epsilon <- 0.025
-#var_epsilon <- 0.1
-
+var_epsilon <- 1.0
 
 # Model definition --------------------------------------------------------
 
@@ -107,11 +105,13 @@ cat_loss <- function(target, reconstruction) {
 # https://github.com/bjlkeng/sandbox/blob/master/notebooks/variational_autoencoder-svhn/model_fit.ipynb
 # https://www.reddit.com/r/MachineLearning/comments/4eqifs/gaussian_observation_vae/
 # see for an explanation: http://bjlkeng.github.io/posts/a-variational-autoencoder-on-the-svnh-dataset/
-
+# normal loglikelihood
 normal_loss <- function(target, reconstruction) {
-  loss <- 0.5 * K$sum(log(2 * pi) + 
-                       K$log(x_decoded_var + var_epsilon) +
-                       K$square(x - x_decoded_mean) / (x_decoded_var + var_epsilon), axis = -1L)
+  loss_one_col <- 0.5 * log(2 * pi) + 
+              K$log(sqrt(x_decoded_var) + var_epsilon) +
+              K$square(x - x_decoded_mean) / (x_decoded_var + var_epsilon)
+  loss <- K$sum(loss_one_col, axis = -1L)
+  loss
 }
 
 kl_loss <- function(target, reconstruction) {

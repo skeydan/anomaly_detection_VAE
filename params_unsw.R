@@ -2,7 +2,7 @@
 
 model_weights_exist <- FALSE
 #weights_file <- "weights_unsw_mse_1000epochs_latent2.h5"
-weights_file <- "weights_unsw_mse_1000epochs_latent2_justnumeric.h5"
+weights_file <- "weights_unsw_normal_100epochs_latent2.h5"
 
 ### dimensions ###
  
@@ -16,9 +16,9 @@ intermediate_dim <- 32L
 ### hyperparameters ###
 
 batch_size <- 100L
-epochs <- 1000L
-learning_rate <- 0.01
+epochs <- 100L
+learning_rate <- 0.0001
 
 ### model ###
 
-loss <- "mse"
+loss <- "normal"
