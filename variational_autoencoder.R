@@ -1,7 +1,3 @@
-###################### Lessons learned ##########################
-# loss function must match the data, so variables should be of similar scale
-# mix of one-hot-encoded and continuous data does not work well
-
 library(keras)
 (K <- keras::backend())
 
@@ -27,20 +23,17 @@ print(c(loss, learning_rate))
 
 epsilon_std <- 1.0
 # https://github.com/bjlkeng/sandbox/blob/master/notebooks/variational_autoencoder-svhn/model_fit.ipynb
-var_epsilon <- 1.0
+var_epsilon <- 0.01
 
 # Model definition --------------------------------------------------------
 
 x <- layer_input(shape = original_dim)
-h <- layer_dense(x, intermediate_dim, activation = "relu")
-z_mean <- layer_dense(h, latent_dim)
-z_mean
-z_log_var <- layer_dense(h, latent_dim)
-
-# https://github.com/bjlkeng/sandbox/blob/master/notebooks/variational_autoencoder-svhn/model_fit.ipynb
-#z_mean <- layer_dense(h, latent_dim, activation = "relu")
-#z_log_var <- layer_dense(h, latent_dim, activation = "relu")
-# add dropout???
+h <- layer_dense(x, intermediate_dim) %>% layer_batch_normalization() %>% 
+  layer_activation("relu") %>% layer_activity_regularization(l1=l1, l2=l2)
+z_mean <- layer_dense(h, latent_dim)  %>% layer_batch_normalization() %>% 
+  layer_activation(zmean_activation) %>% layer_activity_regularization(l1=l1, l2=l2)
+z_log_var <- layer_dense(h, latent_dim)  %>% layer_batch_normalization() %>% 
+  layer_activation(zlogvar_activation) %>% layer_activity_regularization(l1=l1, l2=l2)
 
 
 sampling <- function(arg){
@@ -55,14 +48,14 @@ sampling <- function(arg){
   z_mean + K$exp(z_log_var/2)*epsilon
 }
 
-z <- layer_concatenate(list(z_mean, z_log_var)) %>% 
-  layer_lambda(sampling)
+z <- layer_concatenate(list(z_mean, z_log_var)) %>% layer_lambda(sampling) 
 
-decoder_h <- layer_dense(units = intermediate_dim, activation = "relu")
-decoder_mean <- layer_dense(units = original_dim, activation = "sigmoid")
-decoder_var <- layer_dense(units = original_dim, activation = "relu")
+decoder_h <- layer_dense(units = intermediate_dim)
+decoder_mean <- layer_dense(units = original_dim, activation = "sigmoid")  
+decoder_var <- layer_dense(units = original_dim, activation = "relu") 
 
-h_decoded <- decoder_h(z)
+h_decoded <- decoder_h(z)  %>% layer_batch_normalization() %>% 
+  layer_activation("relu") %>% layer_activity_regularization(l1=l1, l2=l2)
 x_decoded_mean <- decoder_mean(h_decoded)
 x_decoded_var <- decoder_var(h_decoded)
 
@@ -153,20 +146,21 @@ if (model_weights_exist == FALSE) {
 
 
 #source("visualize_fraud.R")
-source("visualize_unsw.R")
+#source("visualize_unsw.R")
 # 
 # 
 
 # evaluate  ---------------------------------------------------------------------------
 
-vae %>% evaluate(X_train, X_train, batch_size=batch_size)
+#vae %>% evaluate(X_train, X_train, batch_size=batch_size)
 
 #source("eval_UCSD.R")
 #source("eval_mnist.R")
 #source("eval_fraud.R")
-source("eval_unsw.R")
+#source("eval_unsw.R")
 
-
+# latent variable layers
+encoder %>% predict(X_test[1:100, ])
 
 # View reconstruction / predictions ----------------------------------------------------------
 X_train_100 <- X_train[1:100,]

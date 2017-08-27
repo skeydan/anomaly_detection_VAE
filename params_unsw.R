@@ -2,7 +2,7 @@
 
 model_weights_exist <- FALSE
 #weights_file <- "weights_unsw_mse_1000epochs_latent2.h5"
-weights_file <- "weights_unsw_normal_100epochs_latent2.h5"
+weights_file <- "weights_unsw_mse_new_500epochs_latent2.h5"
 
 ### dimensions ###
  
@@ -12,13 +12,18 @@ latent_dim <- 2L
 intermediate_dim <- 32L 
 #intermediate_dim <- 8L  
 
+# regularization
+l1=0
+l2=0.001
+zmean_activation="linear"
+zlogvar_activation="relu"
 
 ### hyperparameters ###
 
 batch_size <- 100L
-epochs <- 100L
+epochs <- 500L
 learning_rate <- 0.0001
 
 ### model ###
 
-loss <- "normal"
+loss <- "mse"
