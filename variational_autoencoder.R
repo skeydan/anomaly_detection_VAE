@@ -1,23 +1,20 @@
 library(keras)
+library(tensorflow)
 (K <- keras::backend())
 
 set.seed(777)
 
 #source("data_UCSD.R")
-#source("data_mnist.R")
+source("data_mnist.R")
 #source("data_fraud3.R")
-source("data_unsw.R")
+#source("data_unsw.R")
 
 
 #source("params_UCSD.R")
-#source("params_mnist.R")
+source("params_mnist.R")
 #source("params_fraud.R")
-source("params_unsw.R")
+#source("params_unsw.R")
 
-print(c(model_weights_exist, weights_file))
-print(c(original_dim, latent_dim, intermediate_dim))
-print(c(batch_size, epochs))
-print(c(loss, learning_rate))
 
 # Tuning parameters --------------------------------------------------------------
 
@@ -28,12 +25,17 @@ var_epsilon <- 0.01
 # Model definition --------------------------------------------------------
 
 x <- layer_input(shape = original_dim)
-h <- layer_dense(x, intermediate_dim) %>% layer_batch_normalization() %>% 
-  layer_activation("relu") %>% layer_activity_regularization(l1=l1, l2=l2)
-z_mean <- layer_dense(h, latent_dim)  %>% layer_batch_normalization() %>% 
-  layer_activation(zmean_activation) %>% layer_activity_regularization(l1=l1, l2=l2)
-z_log_var <- layer_dense(h, latent_dim)  %>% layer_batch_normalization() %>% 
-  layer_activation(zlogvar_activation) %>% layer_activity_regularization(l1=l1, l2=l2)
+h <- layer_dense(x, intermediate_dim) 
+if(use_batch_normalization) h <- h %>% layer_batch_normalization() 
+h <- h %>% layer_activation("relu") %>% layer_activity_regularization(l1=l1, l2=l2)
+
+z_mean <- layer_dense(h, latent_dim) 
+if(use_batch_normalization) z_mean <- z_mean %>% layer_batch_normalization() 
+z_mean <- z_mean %>% layer_activation(zmean_activation) %>% layer_activity_regularization(l1=l1, l2=l2)
+
+z_log_var <- layer_dense(h, latent_dim) 
+if(use_batch_normalization) z_log_var <- z_log_var %>% layer_batch_normalization() 
+z_log_var <- z_log_var %>% layer_activation(zlogvar_activation) %>% layer_activity_regularization(l1=l1, l2=l2)
 
 
 sampling <- function(arg){
@@ -51,11 +53,12 @@ sampling <- function(arg){
 z <- layer_concatenate(list(z_mean, z_log_var)) %>% layer_lambda(sampling) 
 
 decoder_h <- layer_dense(units = intermediate_dim)
-decoder_mean <- layer_dense(units = original_dim, activation = "sigmoid")  
+decoder_mean <- layer_dense(units = original_dim, activation = decoded_mean_activation)  
 decoder_var <- layer_dense(units = original_dim, activation = "relu") 
 
-h_decoded <- decoder_h(z)  %>% layer_batch_normalization() %>% 
-  layer_activation("relu") %>% layer_activity_regularization(l1=l1, l2=l2)
+h_decoded <- decoder_h(z) 
+if(use_batch_normalization) h_decoded <- h_decoded %>% layer_batch_normalization() 
+h_decoded <- h_decoded %>% layer_activation("relu") %>% layer_activity_regularization(l1=l1, l2=l2)
 x_decoded_mean <- decoder_mean(h_decoded)
 x_decoded_var <- decoder_var(h_decoded)
 
@@ -69,6 +72,8 @@ encoder <- keras_model(x, z_mean)
 # generator, from latent space to reconstructed inputs
 decoder_input <- layer_input(shape = latent_dim)
 h_decoded_2 <- decoder_h(decoder_input)
+if(use_batch_normalization) h_decoded_2 <- h_decoded_2 %>% layer_batch_normalization() 
+h_decoded_2 <- h_decoded_2 %>% layer_activation("relu") %>% layer_activity_regularization(l1=l1, l2=l2)
 x_decoded_mean_2 <- decoder_mean(h_decoded_2)
 generator <- keras_model(decoder_input, x_decoded_mean_2)
 
@@ -123,7 +128,12 @@ vae_loss <- function(target, reconstruction) {
     kl_loss(target, reconstruction)
 }
 
-vae %>% compile(optimizer = optimizer_adam(lr=learning_rate), loss = vae_loss,
+vae %>% compile(optimizer = if(use_optimizer == "rmsprop") {
+                               optimizer_rmsprop(lr = learning_rate) 
+                            } else {
+                            optimizer_adam(lr=learning_rate)
+                            },
+                loss = vae_loss,
                 metrics = c(xent_loss, mse_loss, normal_loss, kl_loss))
 vae %>% summary()
 
@@ -145,9 +155,9 @@ if (model_weights_exist == FALSE) {
 }
 
 
-#source("visualize_fraud.R")
-#source("visualize_unsw.R")
-# 
+# source("visualize_fraud.R")
+# source("visualize_unsw.R")
+source("visualize_mnist.R")
 # 
 
 # evaluate  ---------------------------------------------------------------------------
@@ -155,16 +165,33 @@ if (model_weights_exist == FALSE) {
 #vae %>% evaluate(X_train, X_train, batch_size=batch_size)
 
 #source("eval_UCSD.R")
-#source("eval_mnist.R")
 #source("eval_fraud.R")
 #source("eval_unsw.R")
 
-# latent variable layers
-encoder %>% predict(X_test[1:100, ])
+# get gradients
+# weights <- vae$trainable_weights # weight tensors
+# weights[[1]]$name
+# gradients <- K$gradients(vae$total_loss , weights)
+# 
+# sess <-tf$InteractiveSession()
+# sess$run(tf$global_variables_initializer())
+# 
+# x_ <- vae$input
+# x_
+# y_ <- vae$output
+# y_
+# evaluated_gradients <- sess$run(gradients,feed_dict = dict(x_ = X_train[1:100, ],
+#                                                            y_ = X_train[1:100, ]
+#                                                            ))
 
-# View reconstruction / predictions ----------------------------------------------------------
-X_train_100 <- X_train[1:100,]
-preds_100 <- vae %>% predict(X_train_100, batch_size=100)
+
+# latent variable layers
+# encoder %>% predict(X_test[1:100, ])
+# 
+# # View reconstruction / predictions ----------------------------------------------------------
+# X_train_100 <- X_train[1:100,]
+# preds_100 <- vae %>% predict(X_train_100, batch_size=100)
 #X_train_10
 #preds_10
+
 

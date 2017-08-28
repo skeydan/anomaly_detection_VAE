@@ -5,10 +5,11 @@ library(dplyr)
 
 ## display a 2D plot of the digit classes in the latent space
 x_test_encoded <- predict(encoder, X_test, batch_size = batch_size)
-x_test_encoded %>%
+p <- x_test_encoded %>%
   as_data_frame() %>%
   mutate(class = as.factor(mnist$test$y)) %>%
   ggplot(aes(x = V1, y = V2, colour = class)) + geom_point()
+print(p)
 
 ## display a 2D manifold of the digits
 n <- 15  # figure with 15x15 digits
@@ -27,4 +28,5 @@ for(i in 1:length(grid_x)){
   }
   rows <- cbind(rows, column)
 }
-rows %>% as.raster() %>% plot()
+p <- rows %>% as.raster() %>% plot()
+print(p)

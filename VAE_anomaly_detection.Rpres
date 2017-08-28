@@ -231,7 +231,7 @@ VAE in a nutshell
 &nbsp;
 
 <figure>
-    <img src='vae_doersch.png' width='40%' />
+    <img src='vae_doersch.png' width='80%' />
     <figcaption>Source: [4]</figcaption>
 </figure>
 
@@ -267,7 +267,6 @@ Generate stuff (e.g., images)
 
 How can we use this for ANOMALY DETECTION?
 ========================================================
-incremental: true
 
 &nbsp;
 

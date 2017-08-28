@@ -12,18 +12,16 @@ latent_dim <- 2L
 intermediate_dim <- 32L 
 #intermediate_dim <- 8L  
 
-# regularization
-l1=0
-l2=0.001
-zmean_activation="linear"
-zlogvar_activation="relu"
-
 ### hyperparameters ###
-
+l1=0
+l2=0.1
 batch_size <- 100L
 epochs <- 500L
 learning_rate <- 0.0001
 
-### model ###
 
+### model ###
+zmean_activation="linear"
+zlogvar_activation="relu"
+decoded_mean_activation="linear"
 loss <- "mse"
