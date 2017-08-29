@@ -1,6 +1,6 @@
 ### general ###
 model_weights_exist <- TRUE
-weights_file <- "weights_mnist_xent_50epochs_latent2.h5"
+weights_file <- "weights_mnist.h5"
 
 ### dimensions ###
 original_dim <- 784L    
@@ -11,8 +11,8 @@ intermediate_dim <- 256L
 l1=0
 l2=0
 batch_size <- 100L
-epochs <- 50L
-learning_rate <- 0.001
+epochs <- 100L
+learning_rate <- 0.0001
 use_optimizer <- "rmsprop"
 
 

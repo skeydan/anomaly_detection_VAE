@@ -1,17 +1,5 @@
 library(keras)
-(K <- keras::backend())
-
-
-# Data preparation --------------------------------------------------------
-
-mnist <- dataset_mnist()
-x_train <- mnist$train$x/255
-dim(x_train)
-x_test <- mnist$test$x/255
-x_train <- x_train %>% apply(1, as.numeric) %>% t()
-dim(x_train)
-x_test <- x_test %>% apply(1, as.numeric) %>% t()
-
+K <- keras::backend()
 
 # Parameters --------------------------------------------------------------
 
@@ -19,7 +7,7 @@ batch_size <- 100L
 original_dim <- 784L
 latent_dim <- 2L
 intermediate_dim <- 256L
-epochs <- 5L
+epochs <- 50L
 epsilon_std <- 1.0
 
 # Model definition --------------------------------------------------------
@@ -64,41 +52,30 @@ h_decoded_2 <- decoder_h(decoder_input)
 x_decoded_mean_2 <- decoder_mean(h_decoded_2)
 generator <- keras_model(decoder_input, x_decoded_mean_2)
 
-
-#vae_loss <- function(x, x_decoded_mean){
-#  xent_loss <- (original_dim/1.0)*loss_binary_crossentropy(x, x_decoded_mean)
-#  kl_loss <- -0.5*K$mean(1 + z_log_var - K$square(z_mean) - K$exp(z_log_var), axis = -1L)
-#  K$mean(xent_loss + kl_loss)
-#}
-
-
-############### test #################################
-
 xent_loss <- function(target, reconstruction) {
-  #K$mean(as.double(original_dim) * loss_binary_crossentropy(target, reconstruction))
   as.double(original_dim) * loss_binary_crossentropy(target, reconstruction)
-  
 }
 
 kl_loss <- function(target, reconstruction) {
-  #unused <- K$mean(target - reconstruction)
-  #-0.5*K$mean(1 + z_log_var - K$square(z_mean) - K$exp(z_log_var), axis = -1L)
-  #0 * unused +  -0.5*K$mean(1 + z_log_var - K$square(z_mean) - K$exp(z_log_var), axis = -1L)
-  0 *  K$mean(target - reconstruction) + -0.5*K$mean(1 + z_log_var - K$square(z_mean) - K$exp(z_log_var), axis = -1L)
+  -0.5*K$mean(1 + z_log_var - K$square(z_mean) - K$exp(z_log_var), axis = -1L)
 }
 
-vae_loss <- function(target, reconstruction) {
-  #xent_loss(target, reconstruction) + kl_loss(target, reconstruction)
-  #K$mean(xent_loss(target, reconstruction) + kl_loss(target, reconstruction))
-  #xent_loss(target, reconstruction) 
-  kl_loss(target, reconstruction)
+vae_loss <- function(x, x_decoded_mean){
+  xent_loss <- (original_dim/1.0)*loss_binary_crossentropy(x, x_decoded_mean)
+  kl_loss <- -0.5*K$mean(1 + z_log_var - K$square(z_mean) - K$exp(z_log_var), axis = -1L)
+  xent_loss + kl_loss
 }
 
+vae %>% compile(optimizer = "rmsprop", loss = vae_loss, metrics = c(xent_loss, kl_loss))
 
-######################################################
 
+# Data preparation --------------------------------------------------------
 
-vae %>% compile(optimizer = "rmsprop", loss = vae_loss)
+mnist <- dataset_mnist()
+x_train <- mnist$train$x/255
+x_test <- mnist$test$x/255
+x_train <- x_train %>% apply(1, as.numeric) %>% t()
+x_test <- x_test %>% apply(1, as.numeric) %>% t()
 
 
 # Model training ----------------------------------------------------------
@@ -111,36 +88,33 @@ vae %>% fit(
   validation_data = list(x_test, x_test)
 )
 
-#vae %>% save_model_weights_hdf5("test.h5")
-# #model.load_weights("tmp.h5")
-# 
-# 
-# # Visualizations ----------------------------------------------------------
-# 
-# library(ggplot2)
-# library(dplyr)
-# x_test_encoded <- predict(encoder, x_test, batch_size = batch_size)
-# 
-# x_test_encoded %>%
-#   as_data_frame() %>% 
-#   mutate(class = as.factor(mnist$test$y)) %>%
-#   ggplot(aes(x = V1, y = V2, colour = class)) + geom_point()
-# 
-# # display a 2D manifold of the digits
-# n <- 15  # figure with 15x15 digits
-# digit_size <- 28
-# 
-# # we will sample n points within [-4, 4] standard deviations
-# grid_x <- seq(-4, 4, length.out = n)
-# grid_y <- seq(-4, 4, length.out = n)
-# 
-# rows <- NULL
-# for(i in 1:length(grid_x)){
-#   column <- NULL
-#   for(j in 1:length(grid_y)){
-#     z_sample <- matrix(c(grid_x[i], grid_y[j]), ncol = 2)
-#     column <- rbind(column, predict(generator, z_sample) %>% matrix(ncol = 28) )
-#   }
-#   rows <- cbind(rows, column)
-# }
-# rows %>% as.raster() %>% plot()
+
+# Visualizations ----------------------------------------------------------
+
+library(ggplot2)
+library(dplyr)
+x_test_encoded <- predict(encoder, x_test, batch_size = batch_size)
+
+x_test_encoded %>%
+  as_data_frame() %>% 
+  mutate(class = as.factor(mnist$test$y)) %>%
+  ggplot(aes(x = V1, y = V2, colour = class)) + geom_point()
+
+# display a 2D manifold of the digits
+n <- 15  # figure with 15x15 digits
+digit_size <- 28
+
+# we will sample n points within [-4, 4] standard deviations
+grid_x <- seq(-4, 4, length.out = n)
+grid_y <- seq(-4, 4, length.out = n)
+
+rows <- NULL
+for(i in 1:length(grid_x)){
+  column <- NULL
+  for(j in 1:length(grid_y)){
+    z_sample <- matrix(c(grid_x[i], grid_y[j]), ncol = 2)
+    column <- rbind(column, predict(generator, z_sample) %>% matrix(ncol = 28) )
+  }
+  rows <- cbind(rows, column)
+}
+rows %>% as.raster() %>% plot()

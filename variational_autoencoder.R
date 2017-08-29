@@ -145,7 +145,7 @@ if (model_weights_exist == FALSE) {
     shuffle = TRUE, 
     epochs = epochs, 
     batch_size = batch_size,
-    callbacks = list(callback_tensorboard(log_dir="/tmp"), callback_early_stopping(patience=10)),
+    callbacks = list(callback_tensorboard(log_dir="/tmp"), callback_early_stopping(patience=50)),
     validation_data = list(X_train, X_train),
     verbose=1
   ) 
@@ -155,7 +155,7 @@ if (model_weights_exist == FALSE) {
 }
 
 
-# source("visualize_fraud.R")
+#source("visualize_fraud.R")
 # source("visualize_unsw.R")
 source("visualize_mnist.R")
 # 
@@ -165,25 +165,27 @@ source("visualize_mnist.R")
 #vae %>% evaluate(X_train, X_train, batch_size=batch_size)
 
 #source("eval_UCSD.R")
-#source("eval_fraud.R")
+source("eval_fraud.R")
 #source("eval_unsw.R")
 
 # get gradients
-# weights <- vae$trainable_weights # weight tensors
-# weights[[1]]$name
-# gradients <- K$gradients(vae$total_loss , weights)
+weights <- vae$trainable_weights 
+weights[[1]]$name
+outputTensor <- vae$output 
+outputTensor
+gradients <- K$gradients(outputTensor , weights)
+gradients
 # 
-# sess <-tf$InteractiveSession()
-# sess$run(tf$global_variables_initializer())
+sess <-tf$InteractiveSession()
+sess$run(tf$global_variables_initializer())
 # 
-# x_ <- vae$input
-# x_
-# y_ <- vae$output
-# y_
-# evaluated_gradients <- sess$run(gradients,feed_dict = dict(x_ = X_train[1:100, ],
-#                                                            y_ = X_train[1:100, ]
-#                                                            ))
-
+input <- vae$input
+input
+output <- vae$output
+output
+evaluated_gradients <- sess$run(gradients,
+                                feed_dict = dict(input = X_train[1:100, ], output = X_train[1:100, ]))
+evaluated_gradients
 
 # latent variable layers
 # encoder %>% predict(X_test[1:100, ])

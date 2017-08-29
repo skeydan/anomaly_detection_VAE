@@ -69,6 +69,18 @@ Welcome to the world of deep neural networks
 
 &nbsp;
 
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.path='Figs/',
+                      echo=FALSE, warning=FALSE, message=FALSE,
+                      cache = TRUE)
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(keras)
+```
+
 <figure>
     <img src='networkZooPoster_part.png' width='70%'/>
     <figcaption>Source: [1]</figcaption>
@@ -308,6 +320,27 @@ Let's see this in practice!
 </div>
 
 
+Before we dive in: What's the technology employed?
+========================================================
+
+&nbsp;
+
+- <a href="http://keras.io">Keras</a>, used from R, via the <a href="https://keras.rstudio.com/">bindings provided by Rstudio</a>:
+    - used for all models
+
+- <a href="https://deeplearning4j.org">DL4J</a>: 
+    - for reconstruction-probability based outliers in MNIST
+
+  
+<div class="banner">
+<img src='tri_logo_high.jpg' border=0 width='200px'>
+</div>
+
+<div class="footer">
+<img src='cube3.png' border=0 width='122px'>
+</div>
+
+
 ========================================================
 type:prompt
 
@@ -318,11 +351,59 @@ type:prompt
 <h1>Variational-autoencoding MNIST</h1>
 
 
-Anomalies
+Ubiquitous MNIST
 ========================================================
-incremental: true
 
 &nbsp;
+
+MNIST handwritten digits database
+
+<figure>
+    <img src='mnist.jpg' width='40%' />
+</figure>
+
+
+<div class="banner">
+<img src='tri_logo_high.jpg' border=0 width='200px'>
+</div>
+
+<div class="footer">
+<img src='cube3.png' border=0 width='122px'>
+</div>
+
+
+MNIST latent space
+========================================================
+
+&nbsp;
+
+
+<table>
+<tr>
+<td><img src='mnist_latent.png' /></td>
+<td><img src='mnist_generated.png' /></td>
+</tr>
+</table>
+
+  
+<div class="banner">
+<img src='tri_logo_high.jpg' border=0 width='200px'>
+</div>
+
+<div class="footer">
+<img src='cube3.png' border=0 width='122px'>
+</div>
+
+Best and worst reconstructions
+========================================================
+
+&nbsp;
+
+using reconstruction probability
+
+<figure>
+    <img src='mnist_best_worst.png' width='50%' />
+</figure>
 
 
   
@@ -334,13 +415,15 @@ incremental: true
 <img src='cube3.png' border=0 width='122px'>
 </div>
 
-Anomalies
+So which are the anomalies?
 ========================================================
-incremental: true
 
 &nbsp;
 
-
+- have to define cut-off points
+- as with other machine learning /statistics-based algorithms
+- so is this a problem?
+- the more urgent question really is...
   
 <div class="banner">
 <img src='tri_logo_high.jpg' border=0 width='200px'>
@@ -350,61 +433,17 @@ incremental: true
 <img src='cube3.png' border=0 width='122px'>
 </div>
 
-Anomalies
+How well does this work with real-world datasets?
 ========================================================
-incremental: true
 
 &nbsp;
 
+- MNIST is 28*28 pixels, grayscale ==> super homogeneous data!
+- best supervised learning error rate as of today (test set): 0.23% ==> super simple!
+    
+How about real datasets with different types of variables of different scale?
 
-  
-<div class="banner">
-<img src='tri_logo_high.jpg' border=0 width='200px'>
-</div>
-
-<div class="footer">
-<img src='cube3.png' border=0 width='122px'>
-</div>
-
-Anomalies
-========================================================
-incremental: true
-
-&nbsp;
-
-
-  
-<div class="banner">
-<img src='tri_logo_high.jpg' border=0 width='200px'>
-</div>
-
-<div class="footer">
-<img src='cube3.png' border=0 width='122px'>
-</div>
-
-Anomalies
-========================================================
-incremental: true
-
-&nbsp;
-
-
-  
-<div class="banner">
-<img src='tri_logo_high.jpg' border=0 width='200px'>
-</div>
-
-<div class="footer">
-<img src='cube3.png' border=0 width='122px'>
-</div>
-
-Anomalies
-========================================================
-incremental: true
-
-&nbsp;
-
-
+Let's see how far we'll get.
   
 <div class="banner">
 <img src='tri_logo_high.jpg' border=0 width='200px'>
@@ -421,12 +460,139 @@ type:prompt
 
 &nbsp; 
 
-<h1>One step back: What's deep learning?</h1>
+<h1>Real-world example: fraud detection</h1>
+
+TBD
+========================================================
+
+&nbsp;
 
 
+  
+<div class="banner">
+<img src='tri_logo_high.jpg' border=0 width='200px'>
+</div>
 
+<div class="footer">
+<img src='cube3.png' border=0 width='122px'>
+</div>
+
+
+TBD
+========================================================
+
+&nbsp;
+
+
+  
+<div class="banner">
+<img src='tri_logo_high.jpg' border=0 width='200px'>
+</div>
+
+<div class="footer">
+<img src='cube3.png' border=0 width='122px'>
+</div>
+
+TBD
+========================================================
+
+&nbsp;
+
+
+  
+<div class="banner">
+<img src='tri_logo_high.jpg' border=0 width='200px'>
+</div>
+
+<div class="footer">
+<img src='cube3.png' border=0 width='122px'>
+</div>
+
+TBD
+========================================================
+
+&nbsp;
+
+
+  
+<div class="banner">
+<img src='tri_logo_high.jpg' border=0 width='200px'>
+</div>
+
+<div class="footer">
+<img src='cube3.png' border=0 width='122px'>
+</div>
+
+TBD
+========================================================
+
+&nbsp;
+
+
+  
+<div class="banner">
+<img src='tri_logo_high.jpg' border=0 width='200px'>
+</div>
+
+<div class="footer">
+<img src='cube3.png' border=0 width='122px'>
+</div>
+
+TBD
+========================================================
+
+&nbsp;
+
+
+  
+<div class="banner">
+<img src='tri_logo_high.jpg' border=0 width='200px'>
+</div>
+
+<div class="footer">
+<img src='cube3.png' border=0 width='122px'>
+</div>
+
+TBD
+========================================================
+
+&nbsp;
+
+
+  
+<div class="banner">
+<img src='tri_logo_high.jpg' border=0 width='200px'>
+</div>
+
+<div class="footer">
+<img src='cube3.png' border=0 width='122px'>
+</div>
+
+Fraudulent Transactions (Torgo, Data Mining with R, 2017)
+========================================================
+
+&nbsp;
+
+- data "from an undisclosed source", anonymized
+- transactions reported by salespeople
+    - salesman id
+    - product id
+    - quantity sold
+    - total value of sale
+    - fraud yes/no/unknown
+- total transactions 401,146 - of these, 385414 unknown!
+    
+  
+<div class="banner">
+<img src='tri_logo_high.jpg' border=0 width='200px'>
+</div>
+
+<div class="footer">
+<img src='cube3.png' border=0 width='122px'>
+</div>
 Sources
 ========================================================
+class:smalltext
 
 &nbsp;
 
@@ -436,4 +602,8 @@ Sources
 
 [3] Hawkins, D. (1980), Identification of outliers. Chapman and Hall, London.
 
-[4] Carl Doersch, <a href="https://arxiv.org/pdf/1606.05908.pdf">Tutorial on Variational Autoencoders.</a>  
+[4] Doersch, C.,<a href="https://arxiv.org/pdf/1606.05908.pdf">Tutorial on Variational Autoencoders.</a>  
+
+[5] An, J. & Cho, S.,<a href="http://dm.snu.ac.kr/static/docs/TR/SNUDM-TR-2015-03.pdf">Variational Autoencoder based Anomaly Detection using Reconstruction Probability</a>
+
+[6] Torgo, L. (2017), Data Mining with R, 2nd ed..

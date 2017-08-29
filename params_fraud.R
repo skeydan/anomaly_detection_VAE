@@ -1,6 +1,6 @@
 ### general ###
 model_weights_exist <- TRUE
-weights_file <- "weights_fraud_mse_100epochs_dims102_32_2.h5"
+weights_file <- "weights_fraud.h5"
 
 ### dimensions ### 
 original_dim <- 102L
@@ -11,9 +11,9 @@ intermediate_dim <- 32L
 l1 <- 0
 l2 <- 0
 batch_size <- 100L
-epochs <- 100L
+epochs <- 500L
 learning_rate <- 0.001
-
+use_optimizer <- "adam"
 
 ### model ###
 zmean_activation <- "linear"

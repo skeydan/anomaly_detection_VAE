@@ -27,4 +27,4 @@ df %>%
   as_data_frame() %>%
   mutate(V1 = as.numeric(V1), V2 = as.numeric(V2)) %>%
   ggplot(aes(x = V1, y = V2, colour = V3)) + geom_point() + #coord_cartesian(xlim = c(-10, 10), ylim = c(-10,10))
-    coord_cartesian(xlim = c(-1, 1), ylim = c(-1,1))
+    coord_cartesian(xlim = c(-3, 3), ylim = c(-3,3))

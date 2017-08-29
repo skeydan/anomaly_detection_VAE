@@ -1,8 +1,7 @@
 ### general ###
 
-model_weights_exist <- FALSE
-#weights_file <- "weights_unsw_mse_1000epochs_latent2.h5"
-weights_file <- "weights_unsw_mse_new_500epochs_latent2.h5"
+model_weights_exist <- TRUE
+weights_file <- "weights_unsw.h5"
 
 ### dimensions ###
  
@@ -18,10 +17,11 @@ l2=0.1
 batch_size <- 100L
 epochs <- 500L
 learning_rate <- 0.0001
-
+use_optimizer <- "adam"
 
 ### model ###
 zmean_activation="linear"
 zlogvar_activation="relu"
 decoded_mean_activation="linear"
 loss <- "mse"
+use_batch_normalization <- TRUE
