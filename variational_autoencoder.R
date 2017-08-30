@@ -5,15 +5,15 @@ library(tensorflow)
 set.seed(777)
 
 #source("data_UCSD.R")
-source("data_mnist.R")
+#source("data_mnist.R")
 #source("data_fraud3.R")
-#source("data_unsw.R")
+source("data_unsw.R")
 
 
 #source("params_UCSD.R")
-source("params_mnist.R")
+#source("params_mnist.R")
 #source("params_fraud.R")
-#source("params_unsw.R")
+source("params_unsw.R")
 
 
 # Tuning parameters --------------------------------------------------------------
@@ -156,17 +156,17 @@ if (model_weights_exist == FALSE) {
 
 
 #source("visualize_fraud.R")
-# source("visualize_unsw.R")
-source("visualize_mnist.R")
-# 
+source("visualize_unsw.R")
+#source("visualize_mnist.R")
+ 
 
 # evaluate  ---------------------------------------------------------------------------
 
 #vae %>% evaluate(X_train, X_train, batch_size=batch_size)
 
 #source("eval_UCSD.R")
-source("eval_fraud.R")
-#source("eval_unsw.R")
+#source("eval_fraud.R")
+source("eval_unsw.R")
 
 # get gradients
 weights <- vae$trainable_weights 

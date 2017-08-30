@@ -119,7 +119,7 @@ table(X_train_with_label$attack_cat)
 
 ### write out to csv
 
-library(readr)
-X_test_with_label %>% as.data.frame() %>% write_csv("X_test_with_label.csv")
-X_train_with_label %>% as.data.frame() %>% write_csv("X_train_with_label.csv")
+#library(readr)
+#X_test_with_label %>% as.data.frame() %>% write_csv("X_test_with_label.csv")
+#X_train_with_label %>% as.data.frame() %>% write_csv("X_train_with_label.csv")
 

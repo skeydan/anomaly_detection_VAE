@@ -8,13 +8,3 @@ losses <- Map(function(x) vae %>% evaluate(x,x, batch_size=1),
 for (i in seq_along(losses)) {
   print(losses[[i]][[1]])
 }
-
-# [1] 23.1978
-# [1] 72.77035
-# [1] 42.99196
-# [1] 540530.5
-# [1] 23.20095
-# [1] 39.8451
-# [1] 15.66849
-# [1] 14.21412
-# [1] 35.61949

@@ -34,7 +34,7 @@
 }
 
 .small-code pre code {
-  font-size: .85em;
+  font-size: 1em;
 }
 
 .reveal .smalltext {
@@ -106,7 +106,7 @@ No magic involved: autoencoders
 - useful for applications such as image denoising and dimensionality reduction for visualization
 
 <figure>
-    <img src='autoencoder_schema.jpg' width='40%' />
+    <img src='autoencoder_schema.jpg' width='60%' />
     <figcaption>Source: [2]</figcaption>
 </figure>
 
@@ -124,7 +124,7 @@ No magic involved: autoencoders
 
 Anomalies
 ========================================================
-incremental: true
+
 
 &nbsp;
 
@@ -286,7 +286,7 @@ How can we use this for ANOMALY DETECTION?
 
 - anomalies are seen as coming from a _different process / distribution_, so...
 
-- can diagnose as anomalies those cases that have _high reconstruction error / low reconstruction probability_
+- can diagnose as anomalies those cases that have _high reconstruction error / low reconstruction probability_ [5]
 
 
   
@@ -320,7 +320,7 @@ Let's see this in practice!
 </div>
 
 
-Before we dive in: What's the technology employed?
+Technology employed
 ========================================================
 
 &nbsp;
@@ -370,6 +370,125 @@ MNIST handwritten digits database
 <div class="footer">
 <img src='cube3.png' border=0 width='122px'>
 </div>
+
+
+
+The encoder
+========================================================
+class:small-code
+
+&nbsp;
+
+```{r, eval=FALSE, echo=TRUE}
+ # input layer
+x <- layer_input(batch_shape = c(batch_size, original_dim))   
+# hidden intermediate, lower-res
+h <- layer_dense(x, intermediate_dim, activation = "relu") 
+# latent var 1, 2-dim (mainly for plotting!): mean
+z_mean <- layer_dense(h, latent_dim)    
+# latent var 2, 2-dim: variance
+z_log_var <- layer_dense(h, latent_dim)                            
+
+sampling <- function(arg){
+  z_mean <- arg[,0:1]
+  z_log_var <- arg[,2:3]
+  
+  epsilon <- K$random_normal(
+    shape = c(batch_size, latent_dim), 
+    mean=0.,
+    stddev=epsilon_std
+  )
+  z_mean + K$exp(z_log_var/2)*epsilon
+}
+
+# latent vars are sampled: nondeterministic!
+z <- layer_concatenate(list(z_mean, z_log_var)) %>%               
+  layer_lambda(sampling)
+
+```
+
+  
+<div class="banner">
+<img src='tri_logo_high.jpg' border=0 width='200px'>
+</div>
+
+<div class="footer">
+<img src='cube3.png' border=0 width='122px'>
+</div>
+
+
+The decoder
+========================================================
+class:small-code
+
+&nbsp;
+
+```{r, eval=FALSE, echo=TRUE}
+# the latent layer from above
+z <- layer_concatenate(list(z_mean, z_log_var)) %>%                            
+  layer_lambda(sampling)
+
+# hidden intermediate, higher-res
+decoder_h <- layer_dense(units = intermediate_dim, activation = "relu") 
+# decoder for the mean, high-res again
+decoder_mean <- layer_dense(units = original_dim, activation = "sigmoid")      
+
+h_decoded <- decoder_h(z)
+x_decoded_mean <- decoder_mean(h_decoded)
+
+```
+
+  
+<div class="banner">
+<img src='tri_logo_high.jpg' border=0 width='200px'>
+</div>
+
+<div class="footer">
+<img src='cube3.png' border=0 width='122px'>
+</div>
+
+
+The model
+========================================================
+class:small-code
+
+&nbsp;
+
+```{r, eval=FALSE, echo=TRUE}
+# the complete model, from input to decoded output
+vae <- keras_model(x, x_decoded_mean)                                          
+
+# cross-entropy: the reconstruction part of the loss function
+xent_loss <- function(target, reconstruction) {
+  as.double(original_dim) * loss_binary_crossentropy(target, reconstruction)   
+}
+
+# Kullback-Leibler divergence: the regularization part of the loss function
+kl_loss <- function(target, reconstruction) {
+  -0.5*K$mean(1 + z_log_var - K$square(z_mean) - K$exp(z_log_var), axis = -1L)
+}
+
+vae_loss <- function(x, x_decoded_mean){
+  xent_loss <- (original_dim/1.0)*loss_binary_crossentropy(x, x_decoded_mean)
+  kl_loss <- -0.5*K$mean(1 + z_log_var - K$square(z_mean) - K$exp(z_log_var), axis = -1L)
+  xent_loss + kl_loss
+}
+
+# compile the model with (hopefully) adequate optimizer and learning rate
+vae %>% compile(optimizer = optimizer_rmsprop(lr = learning_rate), loss = vae_loss, metrics = c(xent_loss, kl_loss))
+
+
+```
+
+  
+<div class="banner">
+<img src='tri_logo_high.jpg' border=0 width='200px'>
+</div>
+
+<div class="footer">
+<img src='cube3.png' border=0 width='122px'>
+</div>
+
 
 
 MNIST latent space
@@ -442,8 +561,6 @@ How well does this work with real-world datasets?
 - best supervised learning error rate as of today (test set): 0.23% ==> super simple!
     
 How about real datasets with different types of variables of different scale?
-
-Let's see how far we'll get.
   
 <div class="banner">
 <img src='tri_logo_high.jpg' border=0 width='200px'>
@@ -462,113 +579,8 @@ type:prompt
 
 <h1>Real-world example: fraud detection</h1>
 
-TBD
-========================================================
 
-&nbsp;
-
-
-  
-<div class="banner">
-<img src='tri_logo_high.jpg' border=0 width='200px'>
-</div>
-
-<div class="footer">
-<img src='cube3.png' border=0 width='122px'>
-</div>
-
-
-TBD
-========================================================
-
-&nbsp;
-
-
-  
-<div class="banner">
-<img src='tri_logo_high.jpg' border=0 width='200px'>
-</div>
-
-<div class="footer">
-<img src='cube3.png' border=0 width='122px'>
-</div>
-
-TBD
-========================================================
-
-&nbsp;
-
-
-  
-<div class="banner">
-<img src='tri_logo_high.jpg' border=0 width='200px'>
-</div>
-
-<div class="footer">
-<img src='cube3.png' border=0 width='122px'>
-</div>
-
-TBD
-========================================================
-
-&nbsp;
-
-
-  
-<div class="banner">
-<img src='tri_logo_high.jpg' border=0 width='200px'>
-</div>
-
-<div class="footer">
-<img src='cube3.png' border=0 width='122px'>
-</div>
-
-TBD
-========================================================
-
-&nbsp;
-
-
-  
-<div class="banner">
-<img src='tri_logo_high.jpg' border=0 width='200px'>
-</div>
-
-<div class="footer">
-<img src='cube3.png' border=0 width='122px'>
-</div>
-
-TBD
-========================================================
-
-&nbsp;
-
-
-  
-<div class="banner">
-<img src='tri_logo_high.jpg' border=0 width='200px'>
-</div>
-
-<div class="footer">
-<img src='cube3.png' border=0 width='122px'>
-</div>
-
-TBD
-========================================================
-
-&nbsp;
-
-
-  
-<div class="banner">
-<img src='tri_logo_high.jpg' border=0 width='200px'>
-</div>
-
-<div class="footer">
-<img src='cube3.png' border=0 width='122px'>
-</div>
-
-Fraudulent Transactions (Torgo, Data Mining with R, 2017)
+Fraudulent Transactions [6]
 ========================================================
 
 &nbsp;
@@ -580,7 +592,7 @@ Fraudulent Transactions (Torgo, Data Mining with R, 2017)
     - quantity sold
     - total value of sale
     - fraud yes/no/unknown
-- total transactions 401,146 - of these, 385414 unknown!
+- total transactions 401,146 - of these, 385,414 unknown!
     
   
 <div class="banner">
@@ -590,6 +602,283 @@ Fraudulent Transactions (Torgo, Data Mining with R, 2017)
 <div class="footer">
 <img src='cube3.png' border=0 width='122px'>
 </div>
+
+
+
+Before we start tweaking model parameters...
+========================================================
+
+&nbsp;
+
+How to best preprocess the _data_?
+
+- product ids will have to be one-hot-encoded (but won't be able to use them all to avoid overly sparse matrix)
+- quantity and total value should both be kept (not reduced to unit price!) because each of them may be informative _alone_
+- however, we need all data to be on similar scale to be able to pick an adequate loss function
+- thus, quantity and total value have to be normalized
+- nonetheless, we have a mix of 0/1 and continuous data - let's see how this goes...
+  
+<div class="banner">
+<img src='tri_logo_high.jpg' border=0 width='200px'>
+</div>
+
+<div class="footer">
+<img src='cube3.png' border=0 width='122px'>
+</div>
+
+Parameterizing the model for fraud detection
+========================================================
+
+&nbsp;
+
+- in theory, binary crossentropy should work fine for data between 0 and 1
+- in practice, mean squared error worked better
+- using MSE, also had to change activation of the output (decoded mean) layer to linear
+  
+<div class="banner">
+<img src='tri_logo_high.jpg' border=0 width='200px'>
+</div>
+
+<div class="footer">
+<img src='cube3.png' border=0 width='122px'>
+</div>
+
+Training procedure
+========================================================
+
+&nbsp;
+
+- not evident how to proceed with the unlabeled ("unknown") data (= 96% of whole dataset!)
+- decision: train on "unknown" set, use labeled data (fraud or non-fraud) for testing
+  
+<div class="banner">
+<img src='tri_logo_high.jpg' border=0 width='200px'>
+</div>
+
+<div class="footer">
+<img src='cube3.png' border=0 width='122px'>
+</div>
+
+Fraud latent space:
+========================================================
+
+&nbsp;
+
+<figure><img src='fraud_latent.png' />
+</figure>
+  
+  
+<div class="banner">
+<img src='tri_logo_high.jpg' border=0 width='200px'>
+</div>
+
+<div class="footer">
+<img src='cube3.png' border=0 width='122px'>
+</div>
+
+
+Scores on test set
+========================================================
+
+&nbsp;
+
+Reconstruction error (MSE, in this case):
+
+- final MSE on training set: 3.50
+- MSE on _fraud_ test set: 3.57
+- MSE on _non-fraud_ test set: 3.49
+
+Problem: small sample sizes (non-fraud: 6013, fraud: 180)
+
+
+  
+<div class="banner">
+<img src='tri_logo_high.jpg' border=0 width='200px'>
+</div>
+
+<div class="footer">
+<img src='cube3.png' border=0 width='122px'>
+</div>
+
+
+========================================================
+type:prompt
+
+&nbsp; 
+
+&nbsp; 
+
+<h1>Real-world example: network intrusion detection</h1>
+
+
+UNSW-NB15 intrusion detection dataset [7,8]
+========================================================
+
+&nbsp;
+
+- synthetic dataset
+- 9 types of attack: fuzzers, analysis, backdoors, DoS, exploits, generic, reconnaissance, shellcode, worms
+- 49 features created from raw network traffic captured with tcpdump
+
+<figur><img src="unsw.png" width="40%"/></figure>
+  
+<div class="banner">
+<img src='tri_logo_high.jpg' border=0 width='200px'>
+</div>
+
+<div class="footer">
+<img src='cube3.png' border=0 width='122px'>
+</div>
+
+
+Again - what shall we do with the data?
+========================================================
+
+&nbsp;
+
+- tried: one-hot encoding _protocol_, _service_ and _state_ categorical variables
+- tried: binning and one-hot-encoding continuous variables
+- tried: different ways of normalizing continuous variables
+- in the end, what worked best was getting rid of the categorical variables and scaling all others
+
+<div class="banner">
+<img src='tri_logo_high.jpg' border=0 width='200px'>
+</div>
+
+<div class="footer">
+<img src='cube3.png' border=0 width='122px'>
+</div>
+
+
+How should we parameterize the model?
+========================================================
+class:small-code
+
+&nbsp;
+
+- tried different loss functions appropriate for normally distributed data, MSE worked best
+- also used batch normalization and $l2$ regularization for all hidden layers, e.g.
+
+```{r, echo=TRUE, eval=FALSE}
+h <- layer_dense(x, intermediate_dim) 
+if(use_batch_normalization) h <- h %>% layer_batch_normalization() 
+h <- h %>% layer_activation("relu") %>% layer_activity_regularization(l1=l1, l2=l2)
+```
+
+  
+<div class="banner">
+<img src='tri_logo_high.jpg' border=0 width='200px'>
+</div>
+
+<div class="footer">
+<img src='cube3.png' border=0 width='122px'>
+</div>
+
+Training procedure
+========================================================
+
+&nbsp;
+
+- dataset already comes with a training set and a test set
+- use all non-attack records from the training set (= 37,000) for training - that's not _too_ much given the complexity of the data
+  
+<div class="banner">
+<img src='tri_logo_high.jpg' border=0 width='200px'>
+</div>
+
+<div class="footer">
+<img src='cube3.png' border=0 width='122px'>
+</div>
+
+Network intrusions latent space:
+========================================================
+
+&nbsp;
+
+<table>
+<tr>
+<td><img src='unsw_latent.png' /></td><td><img src='unsw_latent_zoom.png' /></td>
+</tr>
+</table>
+  
+<div class="banner">
+<img src='tri_logo_high.jpg' border=0 width='200px'>
+</div>
+
+<div class="footer">
+<img src='cube3.png' border=0 width='122px'>
+</div>
+
+
+Scores on test set
+========================================================
+
+&nbsp;
+
+Reconstruction error (MSE):
+
+<table>
+<tr><td><em>type</em></td><td><em>number of cases</em></td><td><em>MSE</em></td></tr>
+<tr><td>normal (no attack)</td><td>56,000</td><td>40.4</td></tr>
+<tr><td>analysis</td><td>2,000</td><td>81.1</td></tr>
+<tr><td>DoS</td><td>12,264</td><td>55.3</td></tr>
+<tr><td>exploits</td><td>33,393</td><td>50.4</td></tr>
+<tr><td>fuzzers</td><td>18,184</td><td>37.8</td></tr>
+<tr><td>generic</td><td>40,000</td><td>48.8</td></tr>
+<tr><td>reconnaissance</td><td>10,491</td><td>20.5</td></tr>
+<tr><td>shellcode</td><td>1,133</td><td>19.3</td></tr>
+<tr><td>worms</td><td>130</td><td>38.6</td></tr>
+</table>
+
+
+
+  
+<div class="banner">
+<img src='tri_logo_high.jpg' border=0 width='200px'>
+</div>
+
+<div class="footer">
+<img src='cube3.png' border=0 width='122px'>
+</div>
+
+
+Conclusion
+========================================================
+
+&nbsp;
+
+- not sure we're ready for a conclusion yet...
+- definitely too much preprocessing involved, given we want to use DL for automation
+- conceptually, VAE is a very pleasing fit for the task because of its inherent probabilistic nature
+- in practice, this may need further experimentation, e.g., use embeddings on categorical variables
+- desirable: follow up model performance (e.g., the intrusion detection model) together with a _domain expert_
+
+
+<div class="banner">
+<img src='tri_logo_high.jpg' border=0 width='200px'>
+</div>
+
+<div class="footer">
+<img src='cube3.png' border=0 width='122px'>
+</div>
+
+
+Questions?
+========================================================
+
+&nbsp;
+
+Thanks for your attention!
+
+<div class="banner">
+<img src='tri_logo_high.jpg' border=0 width='200px'>
+</div>
+
+<div class="footer">
+<img src='cube3.png' border=0 width='122px'>
+</div>
+
+
 Sources
 ========================================================
 class:smalltext
@@ -606,4 +895,8 @@ class:smalltext
 
 [5] An, J. & Cho, S.,<a href="http://dm.snu.ac.kr/static/docs/TR/SNUDM-TR-2015-03.pdf">Variational Autoencoder based Anomaly Detection using Reconstruction Probability</a>
 
-[6] Torgo, L. (2017), Data Mining with R, 2nd ed..
+[6] Torgo, L. (2017), Data Mining with R, 2nd ed.
+
+[7] Moustafa, Nour, and Jill Slay. "UNSW-NB15: a comprehensive data set for network intrusion detection systems (UNSW-NB15 network data set)."Military Communications and Information Systems Conference (MilCIS), 2015. IEEE, 2015.
+
+[8] Moustafa, Nour, and Jill Slay. "The evaluation of Network Anomaly Detection Systems: Statistical analysis of the UNSW-NB15 data set and the comparison with the KDD99 data set." Information Security Journal: A Global Perspective (2016): 1-14.

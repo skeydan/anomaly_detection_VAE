@@ -26,5 +26,6 @@ df <- rbind(X_test_normal_encoded, X_test_analysis_encoded, X_test_DoS_encoded,
 df %>%
   as_data_frame() %>%
   mutate(V1 = as.numeric(V1), V2 = as.numeric(V2)) %>%
-  ggplot(aes(x = V1, y = V2, colour = V3)) + geom_point() + #coord_cartesian(xlim = c(-10, 10), ylim = c(-10,10))
-    coord_cartesian(xlim = c(-3, 3), ylim = c(-3,3))
+  ggplot(aes(x = V1, y = V2, colour = V3)) + geom_point(alpha=0.6) + #coord_cartesian(xlim = c(-10, 10), ylim = c(-10,10))
+    coord_cartesian(xlim = c(-0.5, 0.5), ylim = c(-0.5,0.5)) + 
+  theme(aspect.ratio = 1)
