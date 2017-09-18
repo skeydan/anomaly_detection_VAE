@@ -223,7 +223,7 @@ $$E_{z \sim Q}[log P(X|z)] - \mathcal D[Q(z|X)||P(z)] $$
 
 where the terms are
 
-1) the reconstruction error
+1) the reconstruction probability
 
 2) the Kullback-Leibler divergence between the approximate posterior and the prior for $z$
   
