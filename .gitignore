@@ -1,3 +1,9 @@
 *.h5
 *.csv
 *.tar.gz
+*.zip
+*.pdf
+*.pptx
+*.html
+*.md
+*cache/
