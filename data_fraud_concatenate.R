@@ -39,8 +39,12 @@ normalize <- function(x){
 summary(sales$Quant)
 summary(sales$Val)
 
-sales <- sales %>% mutate(Quant = normalize(Quant))
-sales <- sales %>% mutate(Val = normalize(Val))
+#sales <- sales %>% mutate(Quant = normalize(Quant))
+#sales <- sales %>% mutate(Val = normalize(Val))
+
+sales <- sales %>% mutate(Quant = scale(Quant))
+sales <- sales %>% mutate(Val = scale(Val))
+
 
 dim(sales)
 

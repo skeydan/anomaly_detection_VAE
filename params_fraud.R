@@ -1,5 +1,5 @@
 ### general ###
-model_weights_exist <- TRUE
+model_weights_exist <- FALSE
 weights_file <- "weights_fraud.h5"
 
 ### dimensions ### 

@@ -1,205 +1,184 @@
+library(ggplot2)
+library(dplyr)
 library(keras)
-library(tensorflow)
 (K <- keras::backend())
 
 set.seed(777)
 
 source("data_fraud_concatenate.R")
-source("params_fraud.R")
+
+### general ###
+model_weights_exist <- TRUE
+weights_file <- "weights_fraud_concatenate_embeddings10_intermediate4.h5"
+
+### dimensions ### 
+original_dim <- 3L
+latent_dim <- 2L        
+intermediate_dim <- 4L 
 
 num_categories <- 4548
 num_numeric <- 2
-embedding_dim <- 100
+embedding_dim <- 10
+input_length <- 1
+
+### hyperparameters ###
+l1 <- 0
+l2 <- 0.0
+batch_size <- 100L
+epochs <- 100L
+learning_rate <- 0.001
+
+### model ###
+zmean_activation <- "linear"
+zlogvar_activation <- "relu"
+decoded_mean_activation <- "linear"
 
 epsilon_std <- 1.0
 
-# https://keras.io/getting-started/functional-api-guide/#multi-input-and-multi-output-models
-
+### model
 x_categorical <- layer_input(shape = 1, name = "categorical_input")
-x_embedding <- layer_embedding(
-  input_dim = num_categories,
-  output_dim = embedding_dim)(x_categorical)
+x_embedding <- layer_embedding(input_dim = num_categories,
+                               output_dim = embedding_dim,
+                               input_length = input_length)(x_categorical)
+x_embedding
+x_reshape <-
+  layer_reshape(target_shape = embedding_dim,
+                input_shape = c(1, embedding_dim))(x_embedding)
+x_reshape
 
-x_numerical <- layer_input(shape = c(1,2), name='numerical_input')
-x_combined <- layer_concatenate(list(x_embedding, x_numerical), axis = -1)
-x <- layer_flatten(x_combined)
-x
+x_numerical <- layer_input(shape = 2, name = 'numerical_input')
+x_combined <- layer_concatenate(list(x_reshape, x_numerical))
+x_combined
 
-h <- layer_dense(x, intermediate_dim) 
-if(use_batch_normalization) h <- h %>% layer_batch_normalization() 
-h <- h %>% layer_activation("relu") %>% layer_activity_regularization(l1=l1, l2=l2)
+x <- x_combined
 
-z_mean <- layer_dense(h, latent_dim) 
-if(use_batch_normalization) z_mean <- z_mean %>% layer_batch_normalization() 
-z_mean <- z_mean %>% layer_activation(zmean_activation) %>% layer_activity_regularization(l1=l1, l2=l2)
+h <- layer_dense(x, intermediate_dim) %>% 
+  layer_activation("relu") %>%
+  layer_batch_normalization() %>%
+  layer_activity_regularization(l1=l1, l2=l2)
 
-z_log_var <- layer_dense(h, latent_dim) 
-if(use_batch_normalization) z_log_var <- z_log_var %>% layer_batch_normalization() 
-z_log_var <- z_log_var %>% layer_activation(zlogvar_activation) %>% layer_activity_regularization(l1=l1, l2=l2)
+z_mean <-
+  layer_dense(h, latent_dim)  %>% 
+  layer_activation(zmean_activation) %>%
+  layer_batch_normalization() %>%
+  layer_activity_regularization(l1=l1, l2=l2)
 
+z_log_var <-
+  layer_dense(h, latent_dim) %>% 
+  layer_activation(zlogvar_activation) %>%
+  layer_batch_normalization() %>%
+  layer_activity_regularization(l1=l1, l2=l2)
 
-sampling <- function(arg){
-  z_mean <- arg[,0:(latent_dim-1)]
-  z_log_var <- arg[,latent_dim:(2*latent_dim-1)]
+sampling <- function(arg) {
+  z_mean <- arg[, 0:(latent_dim - 1)]
+  z_log_var <- arg[, latent_dim:(2 * latent_dim - 1)]
   
   epsilon <- K$random_normal(
-    shape = c(batch_size, latent_dim), 
-    mean=0.,
-    stddev=epsilon_std
+    shape = c(batch_size, latent_dim),
+    mean = 0.,
+    stddev = epsilon_std
   )
-  z_mean + K$exp(z_log_var/2)*epsilon
+  z_mean + K$exp(z_log_var / 2) * epsilon
 }
 
-z <- layer_concatenate(list(z_mean, z_log_var)) %>% layer_lambda(sampling) 
+z <-
+  layer_concatenate(list(z_mean, z_log_var)) %>% layer_lambda(sampling)
 
 decoder_h <- layer_dense(units = intermediate_dim)
-decoder_mean <- layer_dense(units = original_dim, activation = decoded_mean_activation)  
-decoder_var <- layer_dense(units = original_dim, activation = "relu") 
+decoder_mean <-
+  layer_dense(units = original_dim, activation = decoded_mean_activation)
+decoder_var <-
+  layer_dense(units = original_dim, activation = "relu")
 
-h_decoded <- decoder_h(z) 
-if(use_batch_normalization) h_decoded <- h_decoded %>% layer_batch_normalization() 
-h_decoded <- h_decoded %>% layer_activation("relu") %>% layer_activity_regularization(l1=l1, l2=l2)
+h_decoded <- decoder_h(z) %>% 
+  layer_activation("relu") %>%
+  layer_batch_normalization() %>%
+  layer_activity_regularization(l1=l1, l2=l2)
+
 x_decoded_mean <- decoder_mean(h_decoded)
 x_decoded_var <- decoder_var(h_decoded)
 
-
 # end-to-end autoencoder
-vae <- keras_model(inputs = list(x_categorical, x_numerical), output = x_decoded_mean)
-
-# encoder, from inputs to latent space
-encoder <- keras_model(inputs = list(x_categorical, x_numerical), z_mean)
-
-# generator, from latent space to reconstructed inputs
-decoder_input <- layer_input(shape = latent_dim)
-h_decoded_2 <- decoder_h(decoder_input)
-if(use_batch_normalization) h_decoded_2 <- h_decoded_2 %>% layer_batch_normalization() 
-h_decoded_2 <- h_decoded_2 %>% layer_activation("relu") %>% layer_activity_regularization(l1=l1, l2=l2)
-x_decoded_mean_2 <- decoder_mean(h_decoded_2)
-generator <- keras_model(decoder_input, x_decoded_mean_2)
+vae <-
+  keras_model(inputs = c(x_categorical, x_numerical),
+              output = x_decoded_mean)
+# encoder
+encoder <-
+  keras_model(inputs = c(x_categorical, x_numerical),
+              output = z_mean)
 
 
 # Loss --------------------------------------------------------
 
-xent_loss <- function(target, reconstruction) {
-  # multiply by number of rows because Keras returns mean crossentropy, not sum
-  as.double(original_dim) * loss_binary_crossentropy(target, reconstruction)
-  
-}
-
 mse_loss <- function(target, reconstruction) {
   as.double(original_dim) * loss_mean_squared_error(target, reconstruction)
-  #loss_mean_squared_error(target, reconstruction)
 }
-
-mae_loss <- function(target, reconstruction) {
-  as.double(original_dim) * loss_mean_absolute_error(target, reconstruction)
-  #loss_mean_squared_error(target, reconstruction)
-}
-
-cat_loss <- function(target, reconstruction) {
-  as.double(original_dim) * loss_categorical_crossentropy(target, reconstruction)
-}
-
-# https://github.com/bjlkeng/sandbox/blob/master/notebooks/variational_autoencoder-svhn/model_fit.ipynb
-# https://www.reddit.com/r/MachineLearning/comments/4eqifs/gaussian_observation_vae/
-# see for an explanation: http://bjlkeng.github.io/posts/a-variational-autoencoder-on-the-svnh-dataset/
-# normal loglikelihood
-normal_loss <- function(target, reconstruction) {
-  loss_one_col <- 0.5 * log(2 * pi) + 
-              K$log(sqrt(x_decoded_var) + var_epsilon) +
-              K$square(x - x_decoded_mean) / (x_decoded_var + var_epsilon)
-  loss <- K$sum(loss_one_col, axis = -1L)
-  loss
-}
-# compare also
-# https://github.com/jmtomczak/vae_householder_flow/blob/master/utils/distributions.py
-#def log_Normal_diag(sample, mean, log_var):
-#  # return -0.5 * ( np.log( 2. * np.pi ) + log_var + K.square( sample - mean ) / K.exp( log_var ) )
-#  return -0.5 * ( log_var + K.square( sample - mean ) / K.exp( log_var ) )
-
 
 kl_loss <- function(target, reconstruction) {
-  -0.5*K$mean(1 + z_log_var - K$square(z_mean) - K$exp(z_log_var), axis = -1L)
+  -0.5 * K$mean(1 + z_log_var - K$square(z_mean) - K$exp(z_log_var), axis = -1L)
 }
 
 vae_loss <- function(target, reconstruction) {
-  # optimizing this ends up the same as optimizing the average, i.e
-  # K$mean(xent_loss(target, reconstruction) + kl_loss(target, reconstruction))
-  switch(loss,
-         "normal" = normal_loss(target, reconstruction),
-         "xent" = xent_loss(target, reconstruction),
-         "mse" = mse_loss(target, reconstruction),
-         "mae" = mae_loss(target, reconstruction),
-         "cat" = loss_categorical_crossentropy(target, reconstruction)) +
-    kl_loss(target, reconstruction)
+  mse_loss(target, reconstruction) + kl_loss(target, reconstruction)
 }
 
-vae %>% compile(optimizer = if(use_optimizer == "rmsprop") {
-                               optimizer_rmsprop(lr = learning_rate) 
-                            } else {
-                            optimizer_adam(lr=learning_rate)
-                            },
-                loss = vae_loss,
-                metrics = c(xent_loss, mse_loss, normal_loss, kl_loss))
+vae %>% compile(optimizer = optimizer_adam(lr = learning_rate),
+                loss = vae_loss)
 vae %>% summary()
 
 # Model training ----------------------------------------------------------
 
 if (model_weights_exist == FALSE) {
-  vae %>% fit(
-    X_train, X_train, 
-    shuffle = TRUE, 
-    epochs = epochs, 
+  hist <- vae %>% fit(
+    x = list(X_train[, 1, drop = FALSE], X_train[, 2:3]),
+    y = X_train,
+    shuffle = TRUE,
+    epochs = epochs,
     batch_size = batch_size,
-    callbacks = list(callback_tensorboard(log_dir="/tmp"), callback_early_stopping(patience=50)),
-    validation_data = list(X_train, X_train),
-    verbose=1
-  ) 
+    callbacks = list(
+      callback_tensorboard(log_dir = "/tmp"),
+      callback_early_stopping(patience = 50)
+    ),
+    validation_data = list(list(X_train[, 1, drop = FALSE], X_train[, 2:3]), X_train),
+    verbose = 1
+  )
   vae %>% save_model_weights_hdf5(weights_file)
+  plot(hist)
 } else {
   vae %>% load_model_weights_hdf5(weights_file)
 }
 
-
-#source("visualize_fraud.R")
-source("visualize_unsw.R")
-#source("visualize_mnist.R")
- 
-
-# evaluate  ---------------------------------------------------------------------------
-
-#vae %>% evaluate(X_train, X_train, batch_size=batch_size)
-
-#source("eval_UCSD.R")
-#source("eval_fraud.R")
-source("eval_unsw.R")
-
-# get gradients
-weights <- vae$trainable_weights 
-weights[[1]]$name
-outputTensor <- vae$output 
-outputTensor
-gradients <- K$gradients(outputTensor , weights)
-gradients
-# 
-sess <-tf$InteractiveSession()
-sess$run(tf$global_variables_initializer())
-# 
-input <- vae$input
-input
-output <- vae$output
-output
-evaluated_gradients <- sess$run(gradients,
-                                feed_dict = dict(input = X_train[1:100, ], output = X_train[1:100, ]))
-evaluated_gradients
-
-# latent variable layers
-# encoder %>% predict(X_test[1:100, ])
-# 
-# # View reconstruction / predictions ----------------------------------------------------------
-# X_train_100 <- X_train[1:100,]
-# preds_100 <- vae %>% predict(X_train_100, batch_size=100)
-#X_train_10
-#preds_10
+#
+print(vae %>% evaluate(
+  list(X_test_nonfraud[, 1, drop = FALSE], X_test_nonfraud[, 2:3]),
+  X_test_nonfraud,
+  batch_size = 1
+))
+print(vae %>% evaluate(list(X_test_fraud[, 1, drop = FALSE], X_test_fraud[, 2:3]), X_test_fraud, batch_size =
+                         1))
+print(vae %>% evaluate(list(X_train[, 1, drop = FALSE], X_train[, 2:3]), X_train, batch_size =
+                         batch_size))
 
 
+#
+X_train_encoded <-
+  predict(encoder, list(X_train[, 1, drop = FALSE], X_train[, 2:3]),
+          batch_size = batch_size) %>%
+  cbind("train")
+X_test_fraud_encoded <-
+  predict(encoder, list(X_test_fraud[, 1, drop = FALSE], X_test_fraud[, 2:3]), batch_size = batch_size)  %>% cbind("fraud")
+X_test_nonfraud_encoded <-
+  predict(encoder,
+          list(X_test_nonfraud[, 1, drop = FALSE], X_test_nonfraud[, 2:3]),
+          batch_size = batch_size)  %>% cbind("nonfraud")
+
+df <-
+  rbind(X_train_encoded,
+        X_test_nonfraud_encoded,
+        X_test_fraud_encoded)
+
+p <- df %>%
+  as_data_frame() %>%
+  mutate(V1 = as.numeric(V1), V2 = as.numeric(V2)) %>%
+  ggplot(aes(x = V1, y = V2, colour = V3)) + geom_point(size = 2, alpha = 0.3) + theme(aspect.ratio = 1)
+print(p)

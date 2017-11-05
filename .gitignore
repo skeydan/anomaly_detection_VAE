@@ -7,3 +7,9 @@
 *.html
 *.md
 *cache/
+.Rhistory
+.Rprofile
+.ipynb_checkpoints/
+VAE_anomaly_detection-figure/
+VAE_anomaly_detection_files/
+

@@ -111,6 +111,12 @@ normal_loss <- function(target, reconstruction) {
   loss <- K$sum(loss_one_col, axis = -1L)
   loss
 }
+# compare also
+# https://github.com/jmtomczak/vae_householder_flow/blob/master/utils/distributions.py
+#def log_Normal_diag(sample, mean, log_var):
+#  # return -0.5 * ( np.log( 2. * np.pi ) + log_var + K.square( sample - mean ) / K.exp( log_var ) )
+#  return -0.5 * ( log_var + K.square( sample - mean ) / K.exp( log_var ) )
+
 
 kl_loss <- function(target, reconstruction) {
   -0.5*K$mean(1 + z_log_var - K$square(z_mean) - K$exp(z_log_var), axis = -1L)
